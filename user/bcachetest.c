@@ -8,6 +8,7 @@
 
 void test0();
 void test1();
+void test2();
 
 #define SZ 4096
 char buf[SZ];
@@ -17,6 +18,7 @@ main(int argc, char *argv[])
 {
   test0();
   test1();
+  test2();
   exit(0);
 }
 
@@ -186,4 +188,131 @@ void test1()
     wait(0);
   }
   printf("test1 OK\n");
+}
+
+//
+// test concurrent creates.
+//
+void
+test2()
+{
+  int nc = 4;
+  char file[16];
+
+  printf("start test2\n");
+  
+  mkdir("d2");
+
+  file[0] = 'd';
+  file[1] = '2';
+  file[2] = '/';
+
+  // remove any stale existing files.
+  for(int i = 0; i < 50; i++){
+    for(int ci = 0; ci < nc; ci++){
+      file[3] = 'a' + ci;
+      file[4] = '0' + i;
+      file[5] = '\0';
+      unlink(file);
+    }
+  }
+
+  int pids[nc];
+  for(int ci = 0; ci < nc; ci++){
+    pids[ci] = fork();
+    if(pids[ci] < 0){
+      printf("test2: fork failed\n");
+      exit(1);
+    }
+    if(pids[ci] == 0){
+      char me = "abcdefghijklmnop"[ci];
+      int pid = getpid();
+      int nf = (ci == 0 ? 10 : 15);
+
+      // create nf files.
+      for(int i = 0; i < nf; i++){
+        file[3] = me;
+        file[4] = '0' + i;
+        file[5] = '\0';
+        // printf("w %s\n", file);
+        int fd = open(file, O_CREATE | O_RDWR);
+        if(fd < 0){
+          printf("test2: create %s failed\n", file);
+          exit(1);
+        }
+        int xx = (pid << 16) | i;
+        for(int nw = 0; nw < 2; nw++){
+          // the sleep() increases the chance of simultaneous
+          // calls to bget().
+          sleep(1);
+          if(write(fd, &xx, sizeof(xx)) <= 0){
+            printf("test2: write %s failed\n", file);
+            exit(1);
+          }
+        }
+        close(fd);
+      }
+
+      // read back the nf files.
+      for(int i = 0; i < nf; i++){
+        file[3] = me;
+        file[4] = '0' + i;
+        file[5] = '\0';
+        // printf("r %s\n", file);
+        int fd = open(file, O_RDWR);
+        if(fd < 0){
+          printf("test2: open %s failed\n", file);
+          exit(1);
+        }
+        int xx = (pid << 16) | i;
+        for(int nr = 0; nr < 2; nr++){
+          int z = 0;
+          sleep(1);
+          int n = read(fd, &z, sizeof(z));
+          if(n != sizeof(z)){
+            printf("test2: read %s returned %d, expected %d\n", file, n, sizeof(z));
+            exit(1);
+          }
+          if(z != xx){
+            printf("test2: file %s contained %d, not %d\n", file, z, xx);
+            exit(1);
+          }
+        }
+        close(fd);
+      }
+
+      // delete the nf files.
+      for(int i = 0; i < nf; i++){
+        file[3] = me;
+        file[4] = '0' + i;
+        file[5] = '\0';
+        //printf("u %s\n", file);
+        if(unlink(file) != 0){
+          printf("test2: unlink %s failed\n", file);
+          exit(1);
+        }
+      }
+
+      exit(0);
+    }
+  }
+
+  int ok = 1;
+
+  for(int ci = 0; ci < nc; ci++){
+    int st = 0;
+    int ret = wait(&st);
+    if(ret <= 0){
+      printf("test2: wait() failed\n");
+      ok = 0;
+    }
+    if(st != 0)
+      ok = 0;
+  }
+  
+  if(ok){
+    printf("test2 OK\n");
+  } else {
+    printf("test2 failed\n");
+  }
 }

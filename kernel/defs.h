@@ -1,3 +1,7 @@
+#ifdef LAB_MMAP
+typedef unsigned long size_t;
+typedef long int off_t;
+#endif
 struct buf;
 struct context;
 struct file;
@@ -121,7 +125,9 @@ void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
 void            push_off(void);
 void            pop_off(void);
+#if defined(LAB_LOCK) || defined(LAB_NET)
 int             atomic_read4(int *addr);
+#endif
 #ifdef LAB_LOCK
 void            freelock(struct spinlock*);
 #endif
@@ -204,12 +210,14 @@ int             copyin_new(pagetable_t, char *, uint64, uint64);
 int             copyinstr_new(pagetable_t, char *, uint64, uint64);
 #endif
 
+#ifdef LAB_LOCK
 // stats.c
 void            statsinit(void);
 void            statsinc(void);
 
 // sprintf.c
 int             snprintf(char*, int, char*, ...);
+#endif
 
 #ifdef KCSAN
 void            kcsaninit();

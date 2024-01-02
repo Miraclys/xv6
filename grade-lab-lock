@@ -44,6 +44,10 @@ def test_bcachetest_test0():
 def test_bcachetest_test1():
     r.match('^test1 OK$')
 
+@test(10, "bcachetest: test2", parent=test_bcachetest)
+def test_bcachetest_test2():
+    r.match('^test2 OK$')
+
 @test(19, "usertests")
 def test_usertests():
     r.run_qemu(shell_script([
