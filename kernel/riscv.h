@@ -283,8 +283,8 @@ intr_off()
 static inline int
 intr_get()
 {
-  uint64 x = r_sstatus();
-  return (x & SSTATUS_SIE) != 0;
+  uint64 x = r_sstatus(); // M: obtain the value of the sstatus register
+  return (x & SSTATUS_SIE) != 0; // M: check if the SIE bit is set
 }
 
 static inline uint64

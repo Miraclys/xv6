@@ -88,23 +88,24 @@ holding(struct spinlock *lk)
 void
 push_off(void)
 {
-  int old = intr_get();
+  int old = intr_get(); // get the current interrupt status, 1 for on, 0 for off
 
   intr_off();
   if(mycpu()->noff == 0)
-    mycpu()->intena = old;
+    mycpu()->intena = old; // record the old interrupt status
   mycpu()->noff += 1;
 }
 
+// pop_off() is used to undo a push_off() operation.
 void
 pop_off(void)
 {
   struct cpu *c = mycpu();
-  if(intr_get())
+  if(intr_get()) // if interrupts are enabled
     panic("pop_off - interruptible");
   if(c->noff < 1)
     panic("pop_off");
   c->noff -= 1;
-  if(c->noff == 0 && c->intena)
+  if(c->noff == 0 && c->intena) // noff is 0 and the previous interrupt status is 1
     intr_on();
 }

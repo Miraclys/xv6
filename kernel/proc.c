@@ -441,6 +441,8 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+
+// Actually, the scheduler is a simple round-robin scheduler.
 void
 scheduler(void)
 {
@@ -462,7 +464,8 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
-        swtch(&c->context, &p->context);
+        swtch(&c->context, &p->context); // M: switch to the context of the process
+        // M: util the new process run out of time or yield or sleep or IO will return to here
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.

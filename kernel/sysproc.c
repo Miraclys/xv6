@@ -48,18 +48,19 @@ sys_sbrk(void)
   return addr;
 }
 
+// M: the implementation of sleep system call
 uint64
-sys_sleep(void)
+sys_sleep(void) // M: void here, but argument is passed in argint
 {
   int n;
   uint ticks0;
 
-  argint(0, &n);
+  argint(0, &n); // M: get the NO.0 argument, put it in n
   if(n < 0)
     n = 0;
-  acquire(&tickslock);
-  ticks0 = ticks;
-  while(ticks - ticks0 < n){
+  acquire(&tickslock); // M: acquire the lock
+  ticks0 = ticks; // M: ticks is a global variable which means the number of clock ticks since the system started
+  while(ticks - ticks0 < n){ // M: actually, we will sleep at least n ticks instead of exactly n ticks
     if(killed(myproc())){
       release(&tickslock);
       return -1;
