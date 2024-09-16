@@ -296,7 +296,7 @@ fork(void)
   }
   np->sz = p->sz;
 
-  // copy trace mask value
+  // M: copy trace mask value, for trace system call
   np->mask = p->mask;
 
   // copy saved user registers.

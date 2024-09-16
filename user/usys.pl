@@ -37,4 +37,4 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 entry("sysinfo");
-entry("trace");
+entry("trace"); # add the trace syscall

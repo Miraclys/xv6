@@ -132,6 +132,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sysinfo] sys_sysinfo,
 };
 
+// M: for printing the name of the system call
 static char* syscalls_name[] = {
   [SYS_fork]    "syscall fork",
   [SYS_exit]    "syscall exit",
@@ -164,15 +165,17 @@ syscall(void)
   int num;
   struct proc *p = myproc();
 
+  // M: get the system call number from the trapframe
   num = p->trapframe->a7;
-  //num = *(int*)0;
+  
+  // M: NELEM(syscalls) means the number of elements in the syscalls array
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
     // p->trapframe->a0 = syscalls[num]();
 
     uint64 a0 = syscalls[num]();
-    if ((p->mask >> num) & 0b1) {
+    if ((p->mask >> num) & 0b1) { // M: actually, this is the mask for all trace system call, instead of the mask for the specific system call
       printf("%d: %s -> %d\n", p->pid, syscalls_name[num], a0);
     }
     p->trapframe->a0 = a0;

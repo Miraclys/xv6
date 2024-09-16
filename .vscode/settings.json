@@ -7,6 +7,12 @@
         "memlayout.h": "c",
         "riscv.h": "c",
         "user.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "cstdio": "c",
+        "bitset": "c",
+        "istream": "c",
+        "ostream": "c",
+        "__locale": "c",
+        "ios": "c"
     }
 }
