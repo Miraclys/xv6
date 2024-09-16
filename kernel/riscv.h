@@ -338,6 +338,7 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
 
+// M: we could get the meaning of value from riscv-book, P33
 #define PTE_V (1L << 0) // valid
 #define PTE_R (1L << 1)
 #define PTE_W (1L << 2)
@@ -356,6 +357,9 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
 
 // extract the three 9-bit page table indices from a virtual address.
+// M: because the page is 4096 Bytes and the PTE is 64 bits(10 bits for flags, 44 bits for physical address, 10 bits for reserved)
+// M: so we will have 4096 * 8 / 64 = 512 = 2^9 PTEs in a page table
+// M: so the PXMASK is 0x1FF, and the PXSHIFT is 12 + 9 * level
 #define PXMASK          0x1FF // 9 bits
 #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
 #define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)

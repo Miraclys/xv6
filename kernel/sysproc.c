@@ -71,6 +71,7 @@ sys_sleep(void)
 
 
 #ifdef LAB_PGTBL
+// M: implementation of syscall sys_pagccess
 int
 sys_pgaccess(void)
 {
@@ -78,24 +79,32 @@ sys_pgaccess(void)
   uint64 va;
   int pagenum;
   uint64 abitsaddr;
+
+  // M: get the three arguments
+
+  // M: get the start of virtual address
   argaddr(0, &va);
+  // M: get the number of pages to check
   argint(1, &pagenum);
+  // M: get the address of access bits
   argaddr(2, &abitsaddr);
 
+  // M: maskbits is used to store the accessed bits
   uint64 maskbits = 0;
   struct proc *proc = myproc();
   for (int i = 0; i < pagenum; i++) {
     pte_t *pte = walk(proc->pagetable, va+i*PGSIZE, 0);
     if (pte == 0)
-      panic("page not exist.");
+      panic("[ERROR] sys_pagccess page not exist.");
     if (PTE_FLAGS(*pte) & PTE_A) {
       maskbits = maskbits | (1L << i);
     }
     // clear PTE_A, set PTE_A bits zero
     *pte = ((*pte&PTE_A) ^ *pte) ^ 0 ;
   }
+  // M: copy the maskbits to the valuable whose address is abitsaddr in the user space
   if (copyout(proc->pagetable, abitsaddr, (char *)&maskbits, sizeof(maskbits)) < 0)
-    panic("sys_pgacess copyout error");
+    panic("[ERROR] sys_pgacess copyout error");
 
   return 0;
 }

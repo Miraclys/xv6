@@ -82,17 +82,23 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+
+// M: walk is used to find the PTE in the page table that corresponds to the virtual address va
+// M: walk only finds the PTE
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
+  // M: MAXVA means the maximum virtual address
   if(va >= MAXVA)
     panic("walk");
 
+  // M: the xv6 uses 3-level page table
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
+      // M: alloc means whether we could allocate a needed page-table page
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
