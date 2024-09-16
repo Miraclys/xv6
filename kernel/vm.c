@@ -455,12 +455,15 @@ static int depth = 0;
 
 void
 vmprint(pagetable_t pagetable) {
+  // M: print the addr of pagetable
   if (depth == 0) {
     printf("page table %p\n", (uint64)pagetable);
   }
 
+  // M: start from 0, skip the first pte
   for (int i = 1; i < 512; ++i) {
     pte_t pte = pagetable[i];
+
     if (pte & PTE_V) {
       for (int j = 0; j <= depth; ++j) {
         printf("..");
@@ -471,6 +474,7 @@ vmprint(pagetable_t pagetable) {
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
       depth++;
       uint64 child_pa = PTE2PA(pte);
+      // M: recursive call, to print the multi-level page table
       vmprint((pagetable_t)child_pa);
       depth--;
     }
