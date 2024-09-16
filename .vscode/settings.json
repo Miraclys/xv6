@@ -13,6 +13,7 @@
         "istream": "c",
         "ostream": "c",
         "__locale": "c",
-        "ios": "c"
+        "ios": "c",
+        "sysinfo.h": "c"
     }
 }

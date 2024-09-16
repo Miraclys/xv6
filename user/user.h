@@ -1,5 +1,5 @@
 struct stat;
-struct sysinfo;
+struct sysinfo; // M: predeclare the sysinfo struct
 
 // system calls
 int fork(void);
@@ -23,7 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int sysinfo(struct sysinfo*);
+int sysinfo(struct sysinfo*); // M: add the sysinfo system call
 int trace(int); // M: add the trace system call
 
 // ulib.c

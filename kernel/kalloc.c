@@ -83,7 +83,7 @@ kalloc(void)
 
 int
 count_free_memory(void) {
-  struct run *r;
+  struct run *r; // M: run is the element of the free list
   uint64 free_num = 0;
   acquire(&kmem.lock);
   r = kmem.freelist;
@@ -92,5 +92,5 @@ count_free_memory(void) {
     r = r->next;
   }
   release(&kmem.lock);
-  return free_num * 4096;
+  return free_num * 4096; // M: 4096 is the size of a page
 }

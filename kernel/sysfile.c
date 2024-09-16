@@ -18,6 +18,9 @@
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
+
+// M: get the file descriptor from the arguments and return the fd、the file struct
+// M: static means the function is only visible in this file, not in other files
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
