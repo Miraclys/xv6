@@ -77,6 +77,7 @@ kalloc(void)
   release(&kmem.lock);
 
   if(r)
+    // M: memset modify data by byte, so we should convert run* to char*.
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }

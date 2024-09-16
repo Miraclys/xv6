@@ -163,6 +163,7 @@ static void
 freeproc(struct proc *p)
 {
 
+  // M: free the usyscall_page
   if(p->usyscall_page)
     kfree((void*)p->usyscall_page);
   p->usyscall_page = 0;
@@ -185,6 +186,8 @@ freeproc(struct proc *p)
 
 // Create a user page table for a given process, with no user memory,
 // but with trampoline and trapframe pages.
+
+// M: modify the page table to include the usyscall page
 pagetable_t
 proc_pagetable(struct proc *p)
 {
@@ -195,6 +198,7 @@ proc_pagetable(struct proc *p)
   if(pagetable == 0)
     return 0;
 
+  // M: the capacity page table is PGSIZE
   if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)p->usyscall_page, PTE_R | PTE_U) < 0){
     uvmfree(pagetable, 0);
     return 0;

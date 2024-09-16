@@ -71,9 +71,11 @@
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 #ifdef LAB_PGTBL
-#define USYSCALL (TRAPFRAME - PGSIZE)
+#define USYSCALL (TRAPFRAME - PGSIZE) // M: read only, shared with kernel
 
+// M: the start of read only page at USYSCALL
 struct usyscall {
-  int pid;  // Process ID
+  int pid;  // current process ID
 };
+
 #endif

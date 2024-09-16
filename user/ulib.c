@@ -152,6 +152,7 @@ memcpy(void *dst, const void *src, uint n)
 }
 
 #ifdef LAB_PGTBL
+// M: ugetpid() provided on the userspace side and will automatically use the USYSCALL
 int
 ugetpid(void)
 {

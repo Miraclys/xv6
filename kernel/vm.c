@@ -146,6 +146,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   uint64 a, last;
   pte_t *pte;
 
+  // M: align the va and size
   if((va % PGSIZE) != 0)
     panic("mappages: va not aligned");
 
