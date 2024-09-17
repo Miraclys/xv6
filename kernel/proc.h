@@ -85,6 +85,11 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 struct proc {
 
   // M: add the alarm handler function
+  int alarm_interval;
+  uint64 handler_va;
+  int emulated_alarm_interval;
+  int returned;
+  struct trapframe saved_trapframe;
 
   struct spinlock lock;
 

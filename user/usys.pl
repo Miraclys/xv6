@@ -36,3 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+# M: add the alarm syscall
+entry("sigalarm");
+entry("sigreturn");
