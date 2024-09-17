@@ -37,6 +37,7 @@ periodic()
 {
   count = count + 1;
   printf("alarm!\n");
+  // M: 
   sigreturn();
 }
 
@@ -48,6 +49,7 @@ test0()
   int i;
   printf("test0 start\n");
   count = 0;
+  // M: every 2 ticks, count += 1 and print "alarm!"
   sigalarm(2, periodic);
   for(i = 0; i < 1000*500000; i++){
     if((i % 1000000) == 0)
@@ -55,6 +57,7 @@ test0()
     if(count > 0)
       break;
   }
+  // M: stop the alarm
   sigalarm(0, 0);
   if(count > 0){
     printf("test0 passed\n");
