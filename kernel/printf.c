@@ -143,6 +143,10 @@ backtrace(void)
   // M: judge whether reach the top of the stack by aligning down
   printf("backtrace:\n");
   while (fp_address != PGROUNDDOWN(fp_address)) {
+    // printf("%p %p\n", fp_address, PGROUNDDOWN(fp_address));
+    // if (fp_address == PGROUNDDOWN(fp_address)) {
+    //   break;
+    // }
     // M: print the return address
     printf("%p\n", *(uint64*)(fp_address - 8));
     // M: the layout is in the markdown file
