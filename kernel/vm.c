@@ -94,7 +94,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   // M: the xv6 uses 3-level page table
   for(int level = 2; level > 0; level--) {
-    pte_t *pte = &pagetable[PX(level, va)];
+    pte_t *pte = &pagetable[PX(level, va)]; // M: means &(pagetable + PX(level, va))
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
