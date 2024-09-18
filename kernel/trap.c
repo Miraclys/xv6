@@ -39,6 +39,7 @@ usertrap(void)
   int which_dev = 0;
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
+    // M: we have speicific function to handle kernel trap
     panic("usertrap: not from user mode");
 
   // send interrupts and exceptions to kerneltrap(),
@@ -50,6 +51,7 @@ usertrap(void)
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
+  // M: r_scause() == 8 means there is a system call
   if(r_scause() == 8){
     // system call
 
@@ -80,16 +82,21 @@ usertrap(void)
   // if(which_dev == 2)
   //   yield();
 
+ // M: handle the clock interupt and the alarm interupt
  if (which_dev == 2) {
     struct proc *p = myproc();
+    // M: handle the alarm interupt
     if (p->alarm_interval && p->returned) {
-      if (++p->emulated_alarm_interval == 2) {
+      // if (++p->emulated_alarm_interval == 2) {
+      if (++p->emulated_alarm_interval == p->alarm_interval) {
         p->saved_trapframe = *p->trapframe;
+        // M: make the process return to the handler function
         p->trapframe->epc = p->handler_va;
         p->emulated_alarm_interval = 0;
         p->returned = 0;
       }
     }
+    // M: abandon CPU
     yield();
  }
 
