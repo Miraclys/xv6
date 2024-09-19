@@ -39,12 +39,12 @@ struct logheader {
 
 struct log {
   struct spinlock lock;
-  int start;
-  int size;
+  int start; // M: the start block of the log
+  int size; // M: the blocks in the log
   int outstanding; // how many FS sys calls are executing.
   int committing;  // in commit(), please wait.
   int dev;
-  struct logheader lh;
+  struct logheader lh; // M: log header which contains the block numbers
 };
 struct log log;
 
@@ -123,14 +123,22 @@ recover_from_log(void)
 }
 
 // called at the start of each FS system call.
+// M: ensure that there is enough space in the log for the system call
+// M: and wait when there is a commit in progress
 void
 begin_op(void)
 {
+  // M: get the logging lock
   acquire(&log.lock);
   while(1){
+    // M: if there is a commit in progress, sleep
     if(log.committing){
       sleep(&log, &log.lock);
-    } else if(log.lh.n + (log.outstanding+1)*MAXOPBLOCKS > LOGSIZE){
+      // M: log.lh.n means the number of blocks in the log
+      // M: MAXOPBLOCKS is the maximum number of blocks that may be written in a single system call
+      // M: log.outstanding means the number of FS system calls that are executing
+      // M: LOGSIZE is the maximum number of blocks that may be written in a single transaction
+    } else if(log.lh.n + (log.outstanding+1)*MAXOPBLOCKS > LOGSIZE){ 
       // this op might exhaust log space; wait for commit.
       sleep(&log, &log.lock);
     } else {
@@ -211,6 +219,7 @@ commit()
 //   modify bp->data[]
 //   log_write(bp)
 //   brelse(bp)
+// M: write the modified block b to the log system
 void
 log_write(struct buf *b)
 {
@@ -222,11 +231,14 @@ log_write(struct buf *b)
   if (log.outstanding < 1)
     panic("log_write outside of trans");
 
+  // M: check if the block is already in the log
+  // M: if it is, we wouldn't allocate new log space for it
   for (i = 0; i < log.lh.n; i++) {
     if (log.lh.block[i] == b->blockno)   // log absorption
       break;
   }
   log.lh.block[i] = b->blockno;
+  // M: the block is not in the log, so we should allocate new log space for it
   if (i == log.lh.n) {  // Add new block to log?
     bpin(b);
     log.lh.n++;
