@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+// M: BUCKET means "桶" in Chinese.
 #define NBUCKET 5
 #define NKEYS 100000
 
@@ -17,6 +18,7 @@ struct entry *table[NBUCKET];
 int keys[NKEYS];
 int nthread = 1;
 
+pthread_mutex_t lock[NBUCKET]; // M: declear a lock
 
 double
 now()
@@ -47,12 +49,19 @@ void put(int key, int value)
     if (e->key == key)
       break;
   }
+  // M: if e is true, means the key is already present.
+  // M: so we need to update the value.
   if(e){
     // update the existing key.
     e->value = value;
-  } else {
+  } else { // M: if e is false, means the key is not present.
     // the new is new.
+
+    pthread_mutex_lock(&lock[i]); // M: lock the bucket
+
     insert(key, value, &table[i], table[i]);
+
+    pthread_mutex_unlock(&lock[i]); // M: unlock the bucket
   }
 
 }
@@ -116,6 +125,11 @@ main(int argc, char *argv[])
   assert(NKEYS % nthread == 0);
   for (int i = 0; i < NKEYS; i++) {
     keys[i] = random();
+  }
+
+  for (int i = 0; i < NBUCKET; i++) {
+    // table[i] = 0;
+    pthread_mutex_init(&lock[i], NULL); // M: init the lock
   }
 
   //
