@@ -13,8 +13,8 @@
 struct pipe {
   struct spinlock lock;
   char data[PIPESIZE];
-  uint nread;     // number of bytes read
-  uint nwrite;    // number of bytes written
+  uint nread;     // number of bytes read, emulated bytes
+  uint nwrite;    // number of bytes written, emulated bytes
   int readopen;   // read fd is still open
   int writeopen;  // write fd is still open
 };
@@ -73,23 +73,32 @@ pipeclose(struct pipe *pi, int writable)
     release(&pi->lock);
 }
 
+// M: write the n bytes from the addr to the pipe
 int
 pipewrite(struct pipe *pi, uint64 addr, int n)
 {
+  // M: i means the number of bytes that have been written
   int i = 0;
   struct proc *pr = myproc();
 
+  // M: get the pipe's lock
   acquire(&pi->lock);
   while(i < n){
+    // M: check if the read fd is still open or the process is killed
+    // M: if not, release the lock and return -1
     if(pi->readopen == 0 || killed(pr)){
       release(&pi->lock);
       return -1;
     }
+    // M: handle the case when the pipe is full
     if(pi->nwrite == pi->nread + PIPESIZE){ //DOC: pipewrite-full
       wakeup(&pi->nread);
+      // M: there will be spurious wakeups
       sleep(&pi->nwrite, &pi->lock);
-    } else {
+    } else { // M: write the data to the pipe normally
       char ch;
+      // M: the pipes is in the kernel space, 
+      // so we need to copy the data from the user space to the kernel space
       if(copyin(pr->pagetable, &ch, addr + i, 1) == -1)
         break;
       pi->data[pi->nwrite++ % PIPESIZE] = ch;
@@ -110,6 +119,7 @@ piperead(struct pipe *pi, uint64 addr, int n)
   char ch;
 
   acquire(&pi->lock);
+  // M: the pipe is empty 
   while(pi->nread == pi->nwrite && pi->writeopen){  //DOC: pipe-empty
     if(killed(pr)){
       release(&pi->lock);
@@ -117,10 +127,13 @@ piperead(struct pipe *pi, uint64 addr, int n)
     }
     sleep(&pi->nread, &pi->lock); //DOC: piperead-sleep
   }
+  // M: the pipe is most n bytes, so we could for from 0 to n
   for(i = 0; i < n; i++){  //DOC: piperead-copy
+    // M: we have read all the data in the pipe
     if(pi->nread == pi->nwrite)
       break;
     ch = pi->data[pi->nread++ % PIPESIZE];
+    // M: copy the data in the kernel space to the user space
     if(copyout(pr->pagetable, addr + i, &ch, 1) == -1)
       break;
   }

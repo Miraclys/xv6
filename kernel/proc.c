@@ -79,6 +79,8 @@ mycpu(void)
 }
 
 // Return the current struct proc *, or zero if none.
+// M: risc-v book P74 & P75
+// M: we should disable interrupts first, then get the current cpu, then get the current process
 struct proc*
 myproc(void)
 {
@@ -448,6 +450,7 @@ scheduler(void)
   struct cpu *c = mycpu();
 
   c->proc = 0;
+  // M: runs a loop
   for(;;){
     // The most recent process to run may have had interrupts
     // turned off; enable them to avoid a deadlock if all
@@ -462,6 +465,9 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+        // M: when we call swtch, we switch the context from the current context to the process context.
+        // M: and then we will execute the new process instead of the current process.
+        // M: util the new process call sched() to switch back, we will continue to execute the following "c->proc = 0".
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
@@ -486,6 +492,7 @@ sched(void)
   int intena;
   struct proc *p = myproc();
 
+  // M: exam the lock status and other status.
   if(!holding(&p->lock))
     panic("sched p->lock");
   if(mycpu()->noff != 1)
@@ -496,11 +503,14 @@ sched(void)
     panic("sched interruptible");
 
   intena = mycpu()->intena;
+  // M: swtch(&c->context, &p->context) is a function in swtch.S
+  // M: switch the context from the current context to the process context.
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
 }
 
 // Give up the CPU for one scheduling round.
+// M: risc-v book P73 describes the details of the yield function.
 void
 yield(void)
 {
@@ -558,6 +568,7 @@ sleep(void *chan, struct spinlock *lk)
 
   sched();
 
+  // M: the process have returned from the scheduler
   // Tidy up.
   p->chan = 0;
 
