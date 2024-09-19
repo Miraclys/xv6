@@ -81,10 +81,12 @@ bget(uint dev, uint blockno)
       b->valid = 0;
       b->refcnt = 1;
       release(&bcache.lock);
+      // M: we will return a locked buffer in order to guarantee that only the current process can access it
       acquiresleep(&b->lock);
       return b;
     }
   }
+  // M: when all the buffers are busy, we will panic
   panic("bget: no buffers");
 }
 
@@ -96,9 +98,12 @@ bread(uint dev, uint blockno)
 
   b = bget(dev, blockno);
   if(!b->valid) {
+    // M: read from the disk
+    // M: talk to the disk hardware
     virtio_disk_rw(b, 0);
     b->valid = 1;
   }
+  // M: return a locked buffer
   return b;
 }
 
@@ -119,6 +124,7 @@ brelse(struct buf *b)
   if(!holdingsleep(&b->lock))
     panic("brelse");
 
+  // M: release the buffer's lock
   releasesleep(&b->lock);
 
   acquire(&bcache.lock);
