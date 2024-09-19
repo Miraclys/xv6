@@ -4,7 +4,9 @@
 #include <assert.h>
 #include <pthread.h>
 
+// M: nthread means the number of threads that will be synchronized by the barrier
 static int nthread = 1;
+// M: round is the number of times the barrier has been passed
 static int round = 0;
 
 struct barrier {
@@ -22,6 +24,7 @@ barrier_init(void)
   bstate.nthread = 0;
 }
 
+// M: this is the function we need to implement
 static void 
 barrier()
 {
@@ -30,7 +33,25 @@ barrier()
   // Block until all threads have called barrier() and
   // then increment bstate.round.
   //
-  
+
+  pthread_mutex_lock(&bstate.barrier_mutex);
+  bstate.nthread++;
+
+  if (bstate.nthread < nthread) {
+    // M: pthread_cond_wait will sleep the current thread and unlock the mutex
+    // M: when the condition is signaled, the thread will wake up and lock the mutex again
+    pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
+  } 
+
+  if (bstate.nthread == nthread) {
+    bstate.round++;
+    bstate.nthread = 0;
+    // M: pthread_cond_broadcast will wake up all threads that are sleeping on the condition
+    // M: instead of waking up only one thread like pthread_cond_signal
+    pthread_cond_broadcast(&bstate.barrier_cond);
+  }
+
+  pthread_mutex_unlock(&bstate.barrier_mutex);
 }
 
 static void *
