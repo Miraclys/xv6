@@ -4,6 +4,7 @@
 //
 
 /* Registers */
+// M: the ralative address of the registers
 #define E1000_CTL      (0x00000/4)  /* Device Control Register - RW */
 #define E1000_ICR      (0x000C0/4)  /* Interrupt Cause Read - R */
 #define E1000_IMS      (0x000D0/4)  /* Interrupt Mask Set - RW */

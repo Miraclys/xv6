@@ -134,19 +134,28 @@ usertrapret(void)
 
 // interrupts and exceptions from kernel code go here via kernelvec,
 // on whatever the current kernel stack is.
+// M: handle the interrupt or exception
 void 
 kerneltrap()
 {
   int which_dev = 0;
-  uint64 sepc = r_sepc();
+  // M: read the sepc register, which contains the address of the instruction that caused the trap
+  uint64 sepc = r_sepc(); 
+  // M: read the sstatus register, which contains the current CPU's status
   uint64 sstatus = r_sstatus();
+  // M: read the scause register, which contains the cause of the trap
   uint64 scause = r_scause();
   
+  // M: check the trap whether from supervisor mode
+  // M: is not, panic
   if((sstatus & SSTATUS_SPP) == 0)
     panic("kerneltrap: not from supervisor mode");
+  // M: check the interrupt whether enabled
   if(intr_get() != 0)
     panic("kerneltrap: interrupts enabled");
 
+  // M: if which_dev equals 0, it means it is not a device interrupt
+  // M: it is a exception
   if((which_dev = devintr()) == 0){
     printf("scause %p\n", scause);
     printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
@@ -154,6 +163,7 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
+  // M: if which_dev equals 2, it means it is a timer interrupt
   if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
     yield();
 

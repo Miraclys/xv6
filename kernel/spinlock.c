@@ -43,6 +43,7 @@ findslot(struct spinlock *lk) {
 }
 #endif
 
+// M: init a spinlock 
 void
 initlock(struct spinlock *lk, char *name)
 {

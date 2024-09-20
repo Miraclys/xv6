@@ -83,16 +83,20 @@ consoleread(int user_dst, uint64 dst, int n)
   int c;
   char cbuf;
 
+  // M: n means the bytes that the user wants to read
   target = n;
+  // M: protect the cons.buf with a lock
   acquire(&cons.lock);
   while(n > 0){
     // wait until interrupt handler has put some
     // input into cons.buffer.
+    // M: con.r == cons.w means there is no input in the buffer
     while(cons.r == cons.w){
       if(killed(myproc())){
         release(&cons.lock);
         return -1;
       }
+      // M: sleep, wait for the cons.r and release the lock
       sleep(&cons.r, &cons.lock);
     }
 

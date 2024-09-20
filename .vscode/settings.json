@@ -2,6 +2,7 @@
     "files.associations": {
         "net.h": "c",
         "stddef.h": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "e1000_dev.h": "c"
     }
 }
