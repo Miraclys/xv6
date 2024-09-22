@@ -25,12 +25,14 @@ struct {
 
 // the reference count of physical memory page
 int useReference[PHYSTOP/PGSIZE];
+// M: lock for reference count
 struct spinlock ref_count_lock;
 
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  initlock(&ref_count_lock, "ref_count_lock");
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -59,6 +61,7 @@ kfree(void *pa)
   acquire(&ref_count_lock);
   // decrease the reference count, if use reference is not zero, then return
   useReference[(uint64)pa/PGSIZE] -= 1;
+  // M: temp = useReference[(uint64)pa/PGSIZE] so that we can release the lock?
   temp = useReference[(uint64)pa/PGSIZE];
   release(&ref_count_lock);
   if (temp > 0)

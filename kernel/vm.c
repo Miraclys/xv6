@@ -87,6 +87,7 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+// M: if alloc == 0, we will only search and won't allocate a new page table page
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
@@ -314,6 +315,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
+// M: we should modify this function to implement the copy-on-write
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
@@ -327,9 +329,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    // PAY ATTENTION!!!
-    // 只有父进程内存页是可写的，才会将子进程和父进程都设置为COW和只读的；否则，都是只读的，但是不标记为COW，因为本来就是只读的，不会进行写入
-    // 如果不这样做，父进程内存只读的时候，标记为COW，那么经过缺页中断，程序就可以写入数据，于原本的不符合
+    
+    // M: we will only flag the writable page as COW page
+    // M: if it is read-only, we will copy the page directly
     if (*pte & PTE_W) {
       // set PTE_W to 0
       *pte &= ~PTE_W;

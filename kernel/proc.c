@@ -289,6 +289,7 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
+  // M: so we should to modify uvmcopy function to implement the copy-on-write
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);

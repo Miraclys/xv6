@@ -29,6 +29,7 @@ trapinithart(void)
   w_stvec((uint64)kernelvec);
 }
 
+// M: copy-on-write handler
 int
 cowhandler(pagetable_t pagetable, uint64 va)
 {
@@ -39,6 +40,9 @@ cowhandler(pagetable_t pagetable, uint64 va)
     if (pte == 0)
       return -1;
     // check the PTE
+    // M: check the PTE whether is COW fork() 
+    // M: check the user can access the memory
+    // M: check the PTE is valid
     if ((*pte & PTE_RSW) == 0 || (*pte & PTE_U) == 0 || (*pte & PTE_V) == 0) {
       return -1;
     }
@@ -48,9 +52,14 @@ cowhandler(pagetable_t pagetable, uint64 va)
     // old physical address
     uint64 pa = PTE2PA(*pte);
     // copy old data to new mem
+    // M: copy the data from pa to mem 
+    // M: mem is the new allocated memory for the COW fork()
+    // M: pa is the old memory that the COW fork() is based on
     memmove((char*)mem, (char*)pa, PGSIZE);
     // PAY ATTENTION
     // decrease the reference count of old memory page, because a new page has been allocated
+    // M: we will decrease the reference first
+    // M: if the reference count is 0, then we will free the memory
     kfree((void*)pa);
     uint flags = PTE_FLAGS(*pte);
     // set PTE_W to 1, change the address pointed to by PTE to new memory page(mem)
@@ -69,6 +78,7 @@ usertrap(void)
 {
   int which_dev = 0;
 
+  // M: if the trap from the kernel, then panic
   if((r_sstatus() & SSTATUS_SPP) != 0)
     panic("usertrap: not from user mode");
 
@@ -103,10 +113,16 @@ usertrap(void)
     // the faulting virtual address
     // see Volume II: RISC-V Privileged Architectures V20211203 Page 41
     // the download url is https://github.com/riscv/riscv-isa-manual/releases/download/Priv-v1.12/riscv-privileged-20211203.pdf
+    
+    // M: get the virtual address that caused the page fault
     uint64 va = r_stval();
+    // M: va >= p->sz means the virtual address is out of the range of the process's memory
+    // M: then we will kill the process
     if (va >= p->sz)
       p->killed = 1;
+    // M: 
     int ret = cowhandler(p->pagetable, va);
+    // M: if ret != 0, then we will kill the process
     if (ret != 0)
       p->killed = 1;
   } else if((which_dev = devintr()) != 0){
