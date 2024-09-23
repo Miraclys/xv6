@@ -106,6 +106,7 @@ sys_trace(void) {
 uint64
 sys_sysinfo(void) {
 
+  // M: we will pass the sysinfo struct's addr to the system call
   uint64 sysinfo_addr;
   argaddr(0, &sysinfo_addr); // get the address of the target sysinfo struct
 
@@ -118,11 +119,23 @@ sys_sysinfo(void) {
   struct sysinfo sysinfo;
   sysinfo.freemem = free_memory;
   sysinfo.nproc = proc_number;
+  // struct sysinfo* sysinfo = (struct sysinfo*)kalloc();
+  // if (sysinfo == 0) {
+  //   return -1;
+  // }
+  // sysinfo->freemem = free_memory;
+  // sysinfo->nproc = proc_number;
 
+  // M: the system call is in the kernel space
+  // M: so we need to use copyout to copy the sysinfo struct to the user space
   struct proc *p = myproc();
+  // M: (char*)&sysinfo means the addr of the first byte of the sysinfo struct
   if (copyout(p->pagetable, sysinfo_addr, (char*)&sysinfo, sizeof(sysinfo)) < 0) {
+    // kfree((char*)sysinfo);
+  // if (copyout(p->pagetable, sysinfo_addr, (char*)sysinfo, sizeof(*sysinfo)) < 0) {
     return -1;
   } else {
+    // kfree((char*)sysinfo);
     return 0;
   }
 

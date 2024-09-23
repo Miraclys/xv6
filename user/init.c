@@ -31,6 +31,8 @@ main(void)
       exit(1);
     }
     if(pid == 0){
+      // M: the first program in the user space is init
+      // M: and then, init will fork a shell to do the rest of the work
       exec("sh", argv);
       printf("init: exec sh failed\n");
       exit(1);

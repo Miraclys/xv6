@@ -30,6 +30,8 @@ kinit()
   freerange(end, (void*)PHYSTOP);
 }
 
+// M: when we pass address
+// M: we use void* to represent the address
 void
 freerange(void *pa_start, void *pa_end)
 {

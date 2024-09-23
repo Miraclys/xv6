@@ -20,6 +20,7 @@ struct context {
 
 // Per-CPU state.
 struct cpu {
+  // M: one timestamp could only run one process
   struct proc *proc;          // The process running on this cpu, or null.
   struct context context;     // swtch() here to enter scheduler().
   int noff;                   // Depth of push_off() nesting.

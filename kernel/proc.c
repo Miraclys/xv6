@@ -82,6 +82,7 @@ mycpu(void)
 struct proc*
 myproc(void)
 {
+  // M: push_off() and pop_off() are used to disable interrupts
   push_off();
   struct cpu *c = mycpu();
   struct proc *p = c->proc;
@@ -690,7 +691,7 @@ procdump(void)
   }
 }
 
-// Count the number of processes in the system
+// M: Count the number of processes in the system
 int
 count_proc(void) {
   int nproc = 0;
