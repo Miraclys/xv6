@@ -94,6 +94,8 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   // M: the xv6 uses 3-level page table
   for(int level = 2; level > 0; level--) {
+    // M: due to the linear mapping, the virtual address is the physical address
+    // M: so we get a continuous virtual address also a continuous physical address
     pte_t *pte = &pagetable[PX(level, va)]; // M: means &(pagetable + PX(level, va))
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
@@ -211,6 +213,7 @@ pagetable_t
 uvmcreate()
 {
   pagetable_t pagetable;
+  // M: return the virtual address of page table
   pagetable = (pagetable_t) kalloc();
   if(pagetable == 0)
     return 0;

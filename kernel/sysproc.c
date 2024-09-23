@@ -15,10 +15,14 @@ sys_exit(void)
   return 0;  // not reached
 }
 
+// M: we should optimize the gitpid() function
 uint64
 sys_getpid(void)
 {
   return myproc()->pid;
+  // return myproc()->usyscall_page->pid;
+  // struct usyscall *u = (struct usyscall *)USYSCALL;
+  // return u->pid;
 }
 
 uint64

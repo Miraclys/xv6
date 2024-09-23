@@ -125,6 +125,7 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  // M: we should alloc a page for the ususcall struct. 
   if ((p->usyscall_page = (struct usyscall *)kalloc()) == 0) {
     freeproc(p);
     release(&p->lock);
@@ -194,15 +195,10 @@ proc_pagetable(struct proc *p)
   pagetable_t pagetable;
 
   // An empty page table.
+  // M: return the virtual address of page table
   pagetable = uvmcreate();
   if(pagetable == 0)
     return 0;
-
-  // M: the capacity page table is PGSIZE
-  if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)p->usyscall_page, PTE_R | PTE_U) < 0){
-    uvmfree(pagetable, 0);
-    return 0;
-  }
 
   // map the trampoline code (for system call return)
   // at the highest user virtual address.
@@ -223,6 +219,17 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  // M: the capacity page table is PGSIZE
+  if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)p->usyscall_page, PTE_R | PTE_U) < 0){
+    // uvmfree(pagetable, 0);
+    // return 0;
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmfree(pagetable, 0);
+    return 0;
+  }
+
+  // M: return the pointer to the page table
   return pagetable;
 }
 

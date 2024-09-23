@@ -79,5 +79,7 @@ kalloc(void)
   if(r)
     // M: memset modify data by byte, so we should convert run* to char*.
     memset((char*)r, 5, PGSIZE); // fill with junk
+  // M: r is the virtual address of the page.
+  // M: *r is the content of the page.
   return (void*)r;
 }
