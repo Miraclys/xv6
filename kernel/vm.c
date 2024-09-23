@@ -282,11 +282,15 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
+// M: recursively free page-table pages
 void
 freewalk(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
+  // M: 4KB / 512 = 8B = 64 bits
+  // M: so a PTE is 64 bits, 10 bits for flags, 44 bits for physical address, 10 bits for reserved
   for(int i = 0; i < 512; i++){
+    // M: *(pagetable + i) is the PTE
     pte_t pte = pagetable[i];
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
       // this PTE points to a lower-level page table.
@@ -459,11 +463,13 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 static int depth = 0;
 
+// M: recursively print the page table
 void
 vmprint(pagetable_t pagetable) {
   // M: print the addr of pagetable
   if (depth == 0) {
     printf("page table %p\n", (uint64)pagetable);
+    // printf("page table %p\n", pagetable);
   }
 
   // M: start from 0, skip the first pte
@@ -475,6 +481,7 @@ vmprint(pagetable_t pagetable) {
         printf("..");
       }
       printf("%d: pte %p pa %p\n", i, (uint64)pte, (uint64)PTE2PA(pte));
+      // printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte));
     }
 
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
