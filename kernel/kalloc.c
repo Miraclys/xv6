@@ -103,7 +103,8 @@ kalloc(void)
         release(&kmem[i].lock);
         continue;
       } else {
-        // struct run* steal_head = kmem[i].freelist;
+        // M: struct run* steal_head = kmem[i].freelist;
+        // M: allocate 1024 pages from the other CPU at most
         int steal_count = 1024;
         while (--steal_count > 0 && tmp->next) {
           tmp = tmp->next;
