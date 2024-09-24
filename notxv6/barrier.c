@@ -34,6 +34,8 @@ barrier()
   // then increment bstate.round.
   //
 
+  // M: mutex is used to protect the critical section
+  // M: cond is used to coordinate the running order between threads
   pthread_mutex_lock(&bstate.barrier_mutex);
   bstate.nthread++;
 
