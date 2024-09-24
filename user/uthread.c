@@ -11,6 +11,7 @@
 #define MAX_THREAD  4
 
 
+// M: I was supposed to name it "context" instead of "contect"
 struct contect {
   uint64 ra;
   uint64 sp;
@@ -61,8 +62,10 @@ thread_schedule(void)
   /* Find another runnable thread. */
   next_thread = 0;
   t = current_thread + 1;
+  // M: MAX_THREAD is 4, so we can only have 4 threads.
   for(int i = 0; i < MAX_THREAD; i++){
     if(t >= all_thread + MAX_THREAD)
+      // M: let the t point to the first thread.
       t = all_thread;
     if(t->state == RUNNABLE) {
       next_thread = t;
@@ -94,13 +97,17 @@ thread_create(void (*func)())
 {
   struct thread *t;
 
+  // M: find a free thread and allocate the function to the thread.
   for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
     if (t->state == FREE) break;
   }
   t->state = RUNNABLE;
   // YOUR CODE HERE
-  // M: don't understand why 
+  // M: every thread has its own stack.
+  // M: let the pointer sp point to the top of the stack.
   t->context.sp = (uint64)&t->stack[STACK_SIZE - 1];
+  // M: let the ra point to the function.
+  // M: so that we could run the function when we switch to the thread.
   t->context.ra = (uint64)(*func);
 }
 
@@ -120,6 +127,7 @@ thread_a(void)
   int i;
   printf("thread_a started\n");
   a_started = 1;
+  // M: wait for the other two threads to start.
   while(b_started == 0 || c_started == 0)
     thread_yield();
   
@@ -140,6 +148,7 @@ thread_b(void)
   int i;
   printf("thread_b started\n");
   b_started = 1;
+  // M: wait for the other two threads to start.
   while(a_started == 0 || c_started == 0)
     thread_yield();
   
@@ -160,6 +169,7 @@ thread_c(void)
   int i;
   printf("thread_c started\n");
   c_started = 1;
+  // M: wait for the other two threads to start.
   while(a_started == 0 || b_started == 0)
     thread_yield();
   

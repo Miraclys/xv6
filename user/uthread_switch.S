@@ -8,6 +8,7 @@
 	.globl thread_switch
 thread_switch:
 	/* YOUR CODE HERE */
+	/* we just need to copy the code in swich.S to here */
 	sd ra, 0(a0)
 	sd sp, 8(a0)
 	sd s0, 16(a0)
