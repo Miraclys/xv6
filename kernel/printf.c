@@ -142,6 +142,7 @@ backtrace(void)
   uint64 fp_address = r_fp();
   // M: judge whether reach the top of the stack by aligning down
   printf("backtrace:\n");
+  // M: when fp_addr == PGROUNDDOWN(fp_address), it means the top of the stack
   while (fp_address != PGROUNDDOWN(fp_address)) {
     // printf("%p %p\n", fp_address, PGROUNDDOWN(fp_address));
     // if (fp_address == PGROUNDDOWN(fp_address)) {
