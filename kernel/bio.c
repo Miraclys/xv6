@@ -31,6 +31,7 @@ struct hashbuf {
 };
 
 struct {
+  // M: buf has the refnt, dev and blockno. 
   struct buf buf[NBUF];
   struct hashbuf bucket[NBUCKET];
 } bcache;
@@ -56,6 +57,7 @@ binit(void)
   for (b = bcache.buf; b < bcache.buf + NBUF; b++) {
     b->next = bcache.bucket[0].head.next;
     b->prev = &bcache.bucket[0].head;
+    // M: 
     initsleeplock(&b->lock, "buffer"); // M: why sleep lock here?
     bcache.bucket[0].head.next->prev = b;
     bcache.bucket[0].head.next = b;
