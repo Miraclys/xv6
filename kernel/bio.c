@@ -32,6 +32,8 @@ struct hashbuf {
 
 struct {
   // M: buf has the refnt, dev and blockno. 
+  // M: the same thought as the page table
+  // M: we could use several hash buckets to store the buffer blocks
   struct buf buf[NBUF];
   struct hashbuf bucket[NBUCKET];
 } bcache;
@@ -47,6 +49,7 @@ binit(void)
   struct buf* b;
   char lockname[16];
 
+  // M: initialize NBUCKET buckets
   for (int i = 0; i < NBUCKET; ++i) {
     snprintf(lockname, sizeof(lockname), "bcache%d", i);
     initlock(&bcache.bucket[i].lock, lockname);
@@ -55,65 +58,44 @@ binit(void)
   }
 
   for (b = bcache.buf; b < bcache.buf + NBUF; b++) {
-    b->next = bcache.bucket[0].head.next;
-    b->prev = &bcache.bucket[0].head;
-    // M: 
-    initsleeplock(&b->lock, "buffer"); // M: why sleep lock here?
-    bcache.bucket[0].head.next->prev = b;
-    bcache.bucket[0].head.next = b;
+    int bucket_index = hash(b - bcache.buf);
+    b->next = bcache.bucket[bucket_index].head.next;
+    b->prev = &bcache.bucket[bucket_index].head;
+    char name[16];
+    snprintf(name, sizeof(name), "buffer%d", b - bcache.buf);
+    initsleeplock(&b->lock, name);
+    bcache.bucket[bucket_index].head.next->prev = b;
+    bcache.bucket[bucket_index].head.next = b;
   }
 }
 
-// Look through buffer cache for block on device dev.
-// If not found, allocate a buffer.
-// In either case, return locked buffer.
-static struct buf*
-bget(uint dev, uint blockno)
-{
-  struct buf* b;
+struct buf* 
+get_buffer_ptr(uint dev, uint blockno, int bid) {
 
-  int bid = hash(blockno);
-  acquire(&bcache.bucket[bid].lock);
-
-  // Is the block already cached?
-  for(b = bcache.bucket[bid].head.next; b != &bcache.bucket[bid].head; b = b->next) {
-    if(b->dev == dev && b->blockno == blockno) {
-      b->refcnt++;
-
-      // 记录使用时间戳
-      acquire(&tickslock);
-      b->timestamps = ticks;
-      release(&tickslock);
-
-      release(&bcache.bucket[bid].lock);
-      acquiresleep(&b->lock);
-      return b;
-    }
-  }
-
-  b = 0;
+  // M: if the block is not cached
+  struct buf* b = 0;
   struct buf* tmp;
 
-  for(int i = bid, cycle = 0; cycle != NBUCKET; i = (i + 1) % NBUCKET) {
-    ++cycle;
-
+  // M: we use the LRU algorithm to replace the buffer block
+  for(int i = bid, time = 0; time != NBUCKET; i = (i + 1) % NBUCKET) {
+    ++time;
     if(i != bid) {
       if(!holding(&bcache.bucket[i].lock))
         acquire(&bcache.bucket[i].lock);
       else
         continue;
     }
-
+    // M: start from the head of the list
+    // M: which means the least recently used buffer block
     for(tmp = bcache.bucket[i].head.next; tmp != &bcache.bucket[i].head; tmp = tmp->next)
-
       if(tmp->refcnt == 0 && (b == 0 || tmp->timestamps < b->timestamps))
         b = tmp;
-
     if(b) {
-
       if(i != bid) {
         b->next->prev = b->prev;
         b->prev->next = b->next;
+        // M: we have two buckets locks here
+        // M: we should release the lock in the reverse order
         release(&bcache.bucket[i].lock);
 
         b->next = bcache.bucket[bid].head.next;
@@ -135,13 +117,45 @@ bget(uint dev, uint blockno)
       acquiresleep(&b->lock);
       return b;
     } else {
-
       if(i != bid)
         release(&bcache.bucket[i].lock);
     }
   }
+  return 0;
+}
 
-  panic("bget: no buffers");
+// Look through buffer cache for block on device dev.
+// If not found, allocate a buffer.
+// In either case, return locked buffer.
+static struct buf*
+bget(uint dev, uint blockno)
+{
+  struct buf* b;
+
+  int bid = hash(blockno);
+  acquire(&bcache.bucket[bid].lock);
+
+  for(b = bcache.bucket[bid].head.next; b != &bcache.bucket[bid].head; b = b->next) {
+    if(b->dev == dev && b->blockno == blockno) {
+      b->refcnt++;
+
+      acquire(&tickslock);
+      b->timestamps = ticks;
+      release(&tickslock);
+
+      release(&bcache.bucket[bid].lock);
+      acquiresleep(&b->lock);
+      return b;
+    }
+  }
+
+  struct buf* buffer_ptr = get_buffer_ptr(dev, blockno, bid);
+  
+  if (buffer_ptr == 0) {
+    panic("bget: no buffers");
+  }
+
+  return buffer_ptr;
 }
 
 // Return a locked buf with the contents of the indicated block.
@@ -182,9 +196,11 @@ brelse(struct buf *b)
   releasesleep(&b->lock);
   acquire(&bcache.bucket[id].lock);
   b->refcnt--;
-  acquire(&tickslock);
-  b->timestamps = ticks;
-  release(&tickslock);
+  if (b->refcnt == 0) {
+    acquire(&tickslock);
+    b->timestamps = ticks;
+    release(&tickslock);
+  }
   release(&bcache.bucket[id].lock);
 }
 
