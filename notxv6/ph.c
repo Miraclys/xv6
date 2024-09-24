@@ -24,10 +24,13 @@ double
 now()
 {
  struct timeval tv;
+ // M: gettimeofday() is a function in <sys/time.h>
+ // M: it gets the current time.
  gettimeofday(&tv, 0);
  return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
+// M: insert a key-value pair into the bucket.
 static void 
 insert(int key, int value, struct entry **p, struct entry *n)
 {
@@ -41,6 +44,7 @@ insert(int key, int value, struct entry **p, struct entry *n)
 static 
 void put(int key, int value)
 {
+  // M: i means the bucket number.
   int i = key % NBUCKET;
 
   // is the key already present?
@@ -59,6 +63,7 @@ void put(int key, int value)
 
     pthread_mutex_lock(&lock[i]); // M: lock the bucket
 
+    // M: the double pointer stores the address of a pointer.
     insert(key, value, &table[i], table[i]);
 
     pthread_mutex_unlock(&lock[i]); // M: unlock the bucket
@@ -66,6 +71,7 @@ void put(int key, int value)
 
 }
 
+// M: get the corresponding value of the key.
 static struct entry*
 get(int key)
 {
