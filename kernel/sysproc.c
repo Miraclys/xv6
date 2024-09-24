@@ -76,6 +76,8 @@ sys_sleep(void)
 
 #ifdef LAB_PGTBL
 // M: implementation of syscall sys_pagccess
+// M: the function is used to check the accessed bits of the pages
+// M: so we should clear the accessed bits of the pages after checking
 int
 sys_pgaccess(void)
 {
@@ -96,14 +98,17 @@ sys_pgaccess(void)
   // M: maskbits is used to store the accessed bits
   uint64 maskbits = 0;
   struct proc *proc = myproc();
+  // M: we should check pagenum pages
   for (int i = 0; i < pagenum; i++) {
     pte_t *pte = walk(proc->pagetable, va+i*PGSIZE, 0);
     if (pte == 0)
       panic("[ERROR] sys_pagccess page not exist.");
+    // M: PTE_FLAGS is used to get the flags of the pte
     if (PTE_FLAGS(*pte) & PTE_A) {
       maskbits = maskbits | (1L << i);
     }
     // clear PTE_A, set PTE_A bits zero
+    // M: so that we could check the accessed bits of the pages next time
     *pte = ((*pte&PTE_A) ^ *pte) ^ 0 ;
   }
   // M: copy the maskbits to the valuable whose address is abitsaddr in the user space
