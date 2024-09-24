@@ -184,7 +184,9 @@ void
 clockintr()
 {
   acquire(&tickslock);
+  // M: increase the ticks
   ticks++;
+  // M: wake up the process that is waiting for the ticks
   wakeup(&ticks);
   release(&tickslock);
 }
@@ -194,11 +196,13 @@ clockintr()
 // returns 2 if timer interrupt,
 // 1 if other device,
 // 0 if not recognized.
+// M: handle the external interrupt and the clock interrupt
 int
 devintr()
 {
   uint64 scause = r_scause();
 
+  // M: check whether it is an external interrupt and the CPU is in the supervisor mode
   if((scause & 0x8000000000000000L) &&
      (scause & 0xff) == 9){
     // this is a supervisor external interrupt, via PLIC.
@@ -224,6 +228,7 @@ devintr()
   } else if(scause == 0x8000000000000001L){
     // software interrupt from a machine-mode timer interrupt,
     // forwarded by timervec in kernelvec.S.
+    // M: this means the clock interrupt
 
     if(cpuid() == 0){
       clockintr();

@@ -441,6 +441,7 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+// M: every CPU will run this function on its own
 void
 scheduler(void)
 {
@@ -452,6 +453,7 @@ scheduler(void)
     // The most recent process to run may have had interrupts
     // turned off; enable them to avoid a deadlock if all
     // processes are waiting.
+    // M: only enable the current CPU's interrupts
     intr_on();
 
     for(p = proc; p < &proc[NPROC]; p++) {
@@ -496,6 +498,7 @@ sched(void)
     panic("sched interruptible");
 
   intena = mycpu()->intena;
+  // M: switch to the CPU's scheduler process
   swtch(&p->context, &mycpu()->context);
   mycpu()->intena = intena;
 }
@@ -574,9 +577,11 @@ wakeup(void *chan)
   struct proc *p;
 
   for(p = proc; p < &proc[NPROC]; p++) {
+    // M: the current CPU has process running
     if(p != myproc()){
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
+        // M: wake up the process, but we don't schedule here
         p->state = RUNNABLE;
       }
       release(&p->lock);

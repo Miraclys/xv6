@@ -4,12 +4,14 @@
 #include "riscv.h"
 #include "defs.h"
 
+// M: the variable started is shared between all CPUs
 volatile static int started = 0;
 
 // start() jumps here in supervisor mode on all CPUs.
 void
 main()
 {
+  // M: we initialize the kernel on the first CPU
   if(cpuid() == 0){
     consoleinit();
     printfinit();
@@ -29,9 +31,11 @@ main()
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
+    // M: sync the started flag, so that the other CPUs can start
     __sync_synchronize();
     started = 1;
   } else {
+    // M: the other CPUs will be in a loop until the started flag is set
     while(started == 0)
       ;
     __sync_synchronize();

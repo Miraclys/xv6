@@ -108,6 +108,7 @@ sys_sigalarm(void)
   
   p->alarm_interval = ticks;
   p->handler_va = handler_va;
+  // M: p->retutned means the process has returned from the trap
   p->returned = 1;
 
   return 0;
@@ -120,5 +121,8 @@ sys_sigreturn(void)
   struct proc *p = myproc();
   *p->trapframe = p->saved_trapframe;
   p->returned = 1;
+  // M: a0 stores the return value
+  // M: or stores the first argument of the system call
+  // M: but here, it stores the return value
   return p->trapframe->a0;
 }
