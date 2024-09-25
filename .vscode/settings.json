@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "fs.h": "c",
+        "file.h": "c"
+    }
+}

@@ -503,3 +503,110 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_mmap(void) 
+{
+  uint64 addr;
+  int length;
+  int prot;
+  int flags;
+  int vfd;
+  struct file* vfile;
+  int offset;
+  uint64 err = 0xffffffffffffffff;
+
+  // 获取系统调用参数
+  argaddr(0, &addr);
+  argint(1, &length);  
+  argint(2, &prot);
+  argint(3, &flags);
+  argfd(4, &vfd, &vfile);
+  argint(5, &offset);
+
+  // 实验提示中假定addr和offset为0，简化程序可能发生的情况
+  if(addr != 0 || offset != 0 || length < 0)
+    return err;
+
+  // 文件不可写则不允许拥有PROT_WRITE权限时映射为MAP_SHARED
+  #ifdef LAB_LOCK
+  if(vfile->writable == 0 && (prot & PROT_WRITE) != 0 && flags == MAP_SHARED)
+    return err;
+  #endif
+
+  struct proc* p = myproc();
+  // 没有足够的虚拟地址空间
+  if(p->sz + length > MAXVA)
+    return err;
+
+  // 遍历查找未使用的VMA结构体
+  for(int i = 0; i < NVMA; ++i) {
+    if(p->mmap[i].used == 0) {
+      p->mmap[i].used = 1;
+      p->mmap[i].addr = p->sz;
+      p->mmap[i].len = length;
+      p->mmap[i].flags = flags;
+      p->mmap[i].prot = prot;
+      p->mmap[i].vfile = vfile;
+      p->mmap[i].vfd = vfd;
+      p->mmap[i].offset = offset;
+
+      // 增加文件的引用计数
+      filedup(vfile);
+
+      p->sz += length;
+      return p->mmap[i].addr;
+    }
+  }
+
+  return err;
+}
+
+uint64
+sys_munmap(void) 
+{
+    uint64 addr;
+  int length;
+  argaddr(0, &addr);
+  argint(1, &length);
+
+  int i;
+  struct proc* p = myproc();
+  for(i = 0; i < NVMA; ++i) {
+    if(p->mmap[i].used && p->mmap[i].len >= length) {
+      // 根据提示，munmap的地址范围只能是
+      // 1. 起始位置
+      if(p->mmap[i].addr == addr) {
+        p->mmap[i].addr += length;
+        p->mmap[i].len -= length;
+        break;
+      }
+      // 2. 结束位置
+      if(addr + length == p->mmap[i].addr + p->mmap[i].len) {
+        p->mmap[i].len -= length;
+        break;
+      }
+    }
+  }
+  if(i == NVMA)
+    return -1;
+
+  // 将MAP_SHARED页面写回文件系统
+  #ifdef LAB_LOCK
+  if(p->mmap[i].flags == MAP_SHARED && (p->mmap[i].prot & PROT_WRITE) != 0) {
+    filewrite(p->mmap[i].vfile, addr, length);
+  }
+  #endif
+
+  // 判断此页面是否存在映射
+  uvmunmap(p->pagetable, addr, length / PGSIZE, 1);
+
+
+  // 当前VMA中全部映射都被取消
+  if(p->mmap[i].len == 0) {
+    fileclose(p->mmap[i].vfile);
+    p->mmap[i].used = 0;
+  }
+
+  return 0;
+}

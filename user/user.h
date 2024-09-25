@@ -51,6 +51,10 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+void* mmap(void*, int, int, int, int, int);
+int munmap(void*, int);
+
 #ifdef LAB_LOCK
 int statistics(void*, int);
 #endif

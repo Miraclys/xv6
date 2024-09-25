@@ -79,6 +79,22 @@ argstr(int n, char *buf, int max)
   return fetchstr(addr, buf, max);
 }
 
+// int
+// argfd(int n, int *pfd, struct file **pf)
+// {
+//     int fd;
+//     struct file *f = 0;
+
+//     argint(n, &fd);
+//     if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+//         return -1;
+//     if(pfd)
+//         *pfd = fd;
+//     if(pf)
+//         *pf = f;
+//     return 0;
+// }
+
 // Prototypes for the functions that handle system calls.
 extern uint64 sys_fork(void);
 extern uint64 sys_exit(void);
