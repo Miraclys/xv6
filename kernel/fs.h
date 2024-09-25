@@ -5,7 +5,7 @@
 #define NINDIRECT (BSIZE / sizeof(uint))
 #define NDINDIRECT ((BSIZE / sizeof(uint)) * (BSIZE / sizeof(uint)))
 #define MAXFILE (NDIRECT + NINDIRECT + NDINDIRECT)
-#define NADDR_PER_BLOCK (BSIZE / sizeof(uint))  // 一个块中的地址数量
+#define NADDR_PER_BLOCK (BSIZE / sizeof(uint))  // M: the number of block addresses in a block
 
 
 

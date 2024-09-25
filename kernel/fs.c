@@ -62,6 +62,7 @@ bzero(int dev, int bno)
 
 // Allocate a zeroed disk block.
 // returns 0 if out of disk space.
+// M: alloc disk block
 static uint
 balloc(uint dev)
 {
@@ -437,6 +438,7 @@ iunlockput(struct inode *ip)
 //   panic("bmap: out of range");
 // }
 
+// M: map the block number to the disk block address
 static uint
 bmap(struct inode *ip, uint bn)
 {
@@ -452,8 +454,10 @@ bmap(struct inode *ip, uint bn)
     }
     return addr;
   }
+  // M: bn is in the indirect block
   bn -= NDIRECT;
 
+  // M: handle the singly indirect block
   if(bn < NINDIRECT){
     // Load indirect block, allocating if necessary.
     if((addr = ip->addrs[NDIRECT]) == 0){
@@ -464,10 +468,16 @@ bmap(struct inode *ip, uint bn)
     }
     // indirect_idx = bn / NINDIRECT;
     // final_offset = bn % NINDIRECT;
+
+    // M: read the addr block
     bp = bread(ip->dev, addr);
+    // M: convert the uchar* to uint*
     a = (uint*)bp->data;
+
     // if((addr = a[indirect_idx]) == 0){
-    if ((addr = a[bn]) == 0) {
+    // M: because the addr is uint
+    // M: so the a[bn] means the bn-th block's address
+    if ((addr = a[bn]) == 0) { // M: the block is not allocated
       addr = balloc(ip->dev);
       if(addr){
         // a[indirect_idx] = addr;
@@ -475,32 +485,40 @@ bmap(struct inode *ip, uint bn)
         log_write(bp);
       }
     }
+    // M: 
     brelse(bp);
     return addr;
   }
   bn -= NINDIRECT;
 
-  // 二级间接块的情况
+  // M: handle the doubly indirect block
   if(bn < NDINDIRECT) {
-    int level2_idx = bn / NADDR_PER_BLOCK;  // 要查找的块号位于二级间接块中的位置
-    int level1_idx = bn % NADDR_PER_BLOCK;  // 要查找的块号位于一级间接块中的位置
-    // 读出二级间接块
+    int level2_index = bn / NADDR_PER_BLOCK;  
+    int level1_index = bn % NADDR_PER_BLOCK;
+
+    // M: have not allocated the first level of doubly indirect block
     if((addr = ip->addrs[NDIRECT + 1]) == 0)
       ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
     bp = bread(ip->dev, addr);
     a = (uint*)bp->data;
 
-    if((addr = a[level2_idx]) == 0) {
-      a[level2_idx] = addr = balloc(ip->dev);
-      // 更改了当前块的内容，标记以供后续写回磁盘
+    // M: have not allocated the second level of doubly indirect block
+    if((addr = a[level2_index]) == 0) {
+      a[level2_index] = addr = balloc(ip->dev);
+      // M: flg the changes
+      // M: so that the block will be written to the disk
       log_write(bp);
     }
+    // M: release the buffer
+    // M: there are changes, so the block should be written to the disk
     brelse(bp);
 
+    // M: read the second level of doubly indirect block
     bp = bread(ip->dev, addr);
     a = (uint*)bp->data;
-    if((addr = a[level1_idx]) == 0) {
-      a[level1_idx] = addr = balloc(ip->dev);
+    // M: have not allocated the block
+    if((addr = a[level1_index]) == 0) {
+      a[level1_index] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
