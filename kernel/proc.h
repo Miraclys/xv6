@@ -1,3 +1,6 @@
+
+// #include "spinlock.h"
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -81,8 +84,20 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+#define VMA_SIZE 16
+
+struct mmap_vma{
+  int in_use;      // 该 vma 结构体是否代表了一个正在使用的文件映射
+  uint64 sta_addr; // 起始地址
+  uint64 sz;       // 映射大小
+  int prot;
+  struct file* file; // 映射的文件
+  int flags;         // map_shared or map_private
+};
+
 // Per-process state
 struct proc {
+
   struct spinlock lock;
 
   // p->lock must be held when using these:
@@ -104,4 +119,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  struct mmap_vma mmap_vmas[VMA_SIZE]; // 该进程的文件映射
 };

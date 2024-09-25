@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "memlayout.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -503,3 +504,137 @@ sys_pipe(void)
   }
   return 0;
 }
+
+#ifdef LAB_MMAP
+uint64
+sys_mmap() {
+  uint64 addr, length, offset; 
+  int prot, flags, fd;
+  struct file* file;
+
+  argaddr(0, &addr);
+  // argint(1, &length);
+  argaddr(1, &length);
+  // argint(2, &prot);
+  argint(2, &prot);
+  argint(3, &flags);
+  argfd(4, &fd, &file); // M: obtain the fd and the file in the same time. 
+  // argint(5, &offset);
+  argaddr(5, &offset);
+
+  struct proc* p = myproc();
+
+  // M: the problem asks us to implement the mmap syscall whose addr is 0 and offset is 0.
+  if (addr || offset) {
+    return -1;
+  }
+  if (!file->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)) {
+    return -1;
+  }
+
+  int vma_index = -1;
+  uint64 vma_addr = get_mmap_space(length, p->mmap_vmas, &vma_index);
+
+  if (vma_addr == -1) {
+    return -1;
+  }
+  if (vma_addr <= p->sz) {
+    return -1;
+  }
+
+  struct mmap_vma* vma = &p->mmap_vmas[vma_index];
+  vma->in_use = 1;
+  vma->sta_addr = vma_addr;
+  vma->sz = length;
+  vma->prot = prot;
+  vma->file = file;
+  vma->flags = flags;
+  // M: increase the reference count of the file.
+  filedup(file);
+
+  return vma->sta_addr;
+}
+
+// in sysfile.c
+uint64
+get_mmap_space(uint64 sz, struct mmap_vma* vmas, int* free_idx){
+  *free_idx = -1;
+  
+  // 返回一个可以储存新文件映射的地址（开始地址）
+  // 优先查看 vma 槽中的“空隙”，如果没有，那就映射到最下面
+  // 其实可以写一个快速排序，但是我懒。。。
+  uint64 lowest_addr = TRAPFRAME;
+  
+  struct mmap_vma tmp; // 作为上边界，可能和上图一样，最上方没有任何映射区域
+  tmp.sta_addr = TRAPFRAME, tmp.sz = 0;
+
+  for(int i = 0; i <= VMA_SIZE; i++){
+    // 假设 vmas[i] 的 PGROUNDDOWN(sta_addr) 是新文件映射的结束位置
+    if(vmas[i].in_use == 0 && i != VMA_SIZE){
+      *free_idx = i;
+      continue;
+    } 
+    uint64 ed_pos = i != VMA_SIZE ? PGROUNDDOWN(vmas[i].sta_addr) 
+                                : tmp.sta_addr;
+
+    lowest_addr = ed_pos < lowest_addr ? ed_pos : lowest_addr; // 取 min
+    
+    for(int j = 0; j < VMA_SIZE; j++){
+      // 假设 vmas[j] 的 sta_addr + sz（vma[j] 的结束位置） 往上是新映射的起始位置
+      if(vmas[j].in_use == 0 && i != VMA_SIZE) continue;
+
+      uint64 st_pos = i != VMA_SIZE ? vmas[j].sta_addr + vmas[j].sz 
+                                  : tmp.sta_addr + tmp.sz; // 这个位置一定是页对齐的
+                                  
+      if (ed_pos <= st_pos) continue; 
+      // 这里直接跳过，不在下面判断是因为无符号类，如果做下面的减法会出错
+      if (ed_pos - st_pos >= sz){
+        // [st_pos, ed_pos) 的区间
+        return st_pos;
+      }
+    }
+  } 
+
+  return lowest_addr - sz;
+}
+
+// in sysfile.c
+uint64
+munmap(uint64 addr, uint64 len){
+  struct proc* p = myproc();
+  struct mmap_vma* cur_vma = get_vma_by_addr(addr);
+  if(!cur_vma)
+    return -1;
+
+  if(addr > cur_vma->sta_addr && addr + len < cur_vma->sta_addr + cur_vma->sz){
+    // 从中间挖洞
+    return -1;
+  }
+
+  mmap_writeback(p->pagetable, addr, len, cur_vma);
+ 
+  if(addr == cur_vma->sta_addr){ 
+    // 从起始位置删除的
+    cur_vma->sta_addr += len;
+  } 
+  cur_vma->sz -= len;
+  
+  if(cur_vma->sz <= 0){
+    // 如果整个映射区都没了
+    fileclose(cur_vma->file);
+    cur_vma->in_use = 0;
+  }
+  return 0;  
+}
+
+uint64
+sys_munmap(){
+  // int munmap(void *addr, size_t length);
+  uint64 addr;
+  uint64 len;
+  argaddr(0, &addr);
+  argaddr(1, &len);
+  return munmap(addr, len);
+}
+
+#endif

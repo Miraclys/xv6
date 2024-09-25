@@ -1,6 +1,13 @@
 #ifdef LAB_MMAP
 typedef unsigned long size_t;
 typedef long int off_t;
+
+void *mmap(void *addr, size_t length, int prot, int flags,
+           int fd, off_t offset);
+
+// int munmap(void *addr, size_t length);     
+
+
 #endif
 struct buf;
 struct context;
@@ -12,10 +19,21 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct mmap_vma;
 #ifdef LAB_NET
 struct mbuf;
 struct sock;
 #endif
+
+int             mmap_fault_handler(uint64 addr);
+struct mmap_vma*   get_vma_by_addr(uint64 addr);
+
+int             mmap_writeback(pagetable_t pt, uint64 src_va, uint64 len, struct mmap_vma* vma);
+
+uint64 munmap(uint64 addr, uint64 len);
+
+uint64 get_mmap_space(uint64 sz, struct mmap_vma* vmas, int* free_idx);
+
 
 // bio.c
 void            binit(void);

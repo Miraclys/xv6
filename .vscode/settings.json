@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "proc.h": "c",
+        "file.h": "c",
+        "fcntl.h": "c",
+        "sleeplock.h": "c",
+        "spinlock.h": "c",
+        "string_view": "c",
+        "__locale": "c",
+        "__string": "c",
+        "string": "c",
+        "fs.h": "c"
+    }
+}
