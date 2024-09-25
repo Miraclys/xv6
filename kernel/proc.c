@@ -146,8 +146,6 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
-  memset(p->mmap, 0, sizeof(p->mmap));
-
   return p;
 }
 
@@ -310,13 +308,6 @@ fork(void)
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
 
-  for (i = 0; i < NVMA; i++) {
-    if (p->mmap[i].used) {
-      memmove(&np->mmap[i], &p->mmap[i], sizeof(p->mmap[i]));
-      filedup(np->mmap[i].vfile);
-    }
-  }
-
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
@@ -368,19 +359,6 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
-
-  #ifdef LAB_LOCK
-  for (int i = 0; i < NVMA; i++) {
-    if (p->mmap[i].used) {
-      if(p->mmap[i].flags == MAP_SHARED && (p->mmap[i].prot & PROT_WRITE) != 0) {
-        filewrite(p->mmap[i].vfile, p->mmap[i].addr, p->mmap[i].len);
-      }
-      fileclose(p->mmap[i].vfile);
-      uvmunmap(p->pagetable, p->mmap[i].addr, p->mmap[i].len / PGSIZE, 1);
-      p->mmap[i].used = 0;
-    }
-  }
-  #endif
 
   begin_op();
   iput(p->cwd);
