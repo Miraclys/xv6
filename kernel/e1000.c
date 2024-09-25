@@ -118,6 +118,8 @@ e1000_init(uint32 *xregs)
   regs[E1000_IMS] = (1 << 7); // RXDW -- Receiver Descriptor Write Back
 }
 
+// M: pay attention to the description of the function
+// M: program it into the TX descriptor ring so that the e1000 sends it.
 int
 e1000_transmit(struct mbuf *m)
 {
@@ -137,7 +139,7 @@ e1000_transmit(struct mbuf *m)
     return -1;
   }
 
-  // M: free the transmit buffer
+  // M: free the previous transmit buffer
   if(tx_mbufs[tdt]){
     mbuffree(tx_mbufs[tdt]);
   };
