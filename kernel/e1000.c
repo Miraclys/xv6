@@ -54,12 +54,15 @@ e1000_init(uint32 *xregs)
     // M: tx_mbufs points to NULL
     tx_mbufs[i] = 0;
   }
+
   // M: the register E1000_TDBAL is the base address of the transmit descriptor ring
   regs[E1000_TDBAL] = (uint64) tx_ring;
   if(sizeof(tx_ring) % 128 != 0)
     panic("e1000");
+
   // M: the register E1000_TDLEN is the length of all transmit descriptor rings 
   regs[E1000_TDLEN] = sizeof(tx_ring);
+  
   // M: the register E1000_TDH is the head of the transmit descriptor ring
   // M: the register E1000_TDT is the tail of the transmit descriptor ring
   regs[E1000_TDH] = regs[E1000_TDT] = 0;
@@ -75,6 +78,7 @@ e1000_init(uint32 *xregs)
     // M: the address of the buffer
     rx_ring[i].addr = (uint64) rx_mbufs[i]->head;
   }
+
   // M: the register E1000_RDBAL is the base address of the receive descriptor ring
   regs[E1000_RDBAL] = (uint64) rx_ring;
   if(sizeof(rx_ring) % 128 != 0)
@@ -89,6 +93,7 @@ e1000_init(uint32 *xregs)
   // filter by qemu's MAC address, 52:54:00:12:34:56
   regs[E1000_RA] = 0x12005452;
   regs[E1000_RA+1] = 0x5634 | (1<<31);
+  
   // multicast table
   // M: empty the multicast table
   for (int i = 0; i < 4096/32; i++)
@@ -154,6 +159,10 @@ e1000_transmit(struct mbuf *m)
   return 0;
 }
 
+// M: pay attention to the description of the function
+// M: "Check for packets that have arrived from the e1000"
+// M: which means the packets have already been in the buffer
+// M: what we need to do is to deliver the packets to the upper network layer
 static void
 e1000_recv(void)
 {
@@ -163,27 +172,37 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver an mbuf for each packet (using net_rx()).
   //
+
   uint32 rdt = regs[E1000_RDT];
   uint32 tail = (rdt + 1) % RX_RING_SIZE;
   struct rx_desc *desc = &rx_ring[tail];
+
   // M: ready to receive packets
   // M: pay attention to the while loop here, instead of only receiving one packet
   while(desc->status & E1000_RXD_STAT_DD){
+
+    // M: because the process of reveiving packets of e1000 is passive
     if(desc->length > MBUF_SIZE) {
       panic("e1000 len");
     }
+
     // M: set the metadata of the mbuf
     rx_mbufs[tail]->len = desc->length;
 
     // M: deliver the packet in the mbuf to the network layer
+    // M: give the buffer to the upper network layer
+    // M: so we don't need to free the buffer here
+    // M: the upper network layer will free the buffer
     net_rx(rx_mbufs[tail]);
 
-    // M: allocate a new buffer space
+    // M: allocate a new buffer space for the tail position
+    // M: we have finished the current buffer space
     // M: which means the rx_mbufs[tail] is ready to be used again
     rx_mbufs[tail] = mbufalloc(0);
     if(!rx_mbufs[tail]){
       panic("e1000_recv mbufalloc failed");
     }
+
     desc->addr = (uint64)rx_mbufs[tail]->head;
     desc->status = 0;
 
