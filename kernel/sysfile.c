@@ -242,6 +242,7 @@ bad:
   return -1;
 }
 
+// M: create a inode with the given type, major and minor
 static struct inode*
 create(char *path, short type, short major, short minor)
 {
@@ -341,18 +342,19 @@ sys_open(void)
     return -1;
   }
 
+  // handle the case of opening a symbolic link
   if(ip->type == T_SYMLINK && !(omode & O_NOFOLLOW)) {
-    // 若符号链接指向的仍然是符号链接，则递归的跟随它
-    // 直到找到真正指向的文件
-    // 但深度不能超过MAX_SYMLINK_DEPTH
+    // M: the maximum depth is defined in fs.h
+    // M: a symlink can also be a target of another symlink
     for(int i = 0; i < MAX_SYMLINK_DEPTH; ++i) {
-      // 读出符号链接指向的路径
+      // M: read the content of the symlink
       if(readi(ip, 0, (uint64)path, 0, MAXPATH) != MAXPATH) {
         iunlockput(ip);
         end_op();
         return -1;
       }
       iunlockput(ip);
+      // M: get the inode of the target file
       ip = namei(path);
       if(ip == 0) {
         end_op();
@@ -362,7 +364,7 @@ sys_open(void)
       if(ip->type != T_SYMLINK)
         break;
     }
-    // 超过最大允许深度后仍然为符号链接，则返回错误
+    // M: if the symlink is too deep, return error
     if(ip->type == T_SYMLINK) {
       iunlockput(ip);
       end_op();
@@ -533,30 +535,39 @@ sys_pipe(void)
   return 0;
 }
 
+// M: add the system call for symbolic link
 uint64
 sys_symlink(void) {
   char target[MAXPATH], path[MAXPATH];
-  struct inode* ip_path;
+  struct inode* ip;
 
   if(argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0) {
     return -1;
   }
 
+  // M: start a file system operation
+  // M: called at the start of each FS system call.
   begin_op();
-  // 分配一个inode结点，create返回锁定的inode
-  ip_path = create(path, T_SYMLINK, 0, 0);
-  if(ip_path == 0) {
+  
+  // M: create a symbolic link inode in the path position
+  // M: we will return a locked inode here
+  ip = create(path, T_SYMLINK, 0, 0);
+  if(ip == 0) {
+    // M: if the creating is failed, return -1
     end_op();
     return -1;
   }
-  // 向inode数据块中写入target路径
-  if(writei(ip_path, 0, (uint64)target, 0, MAXPATH) < MAXPATH) {
-    iunlockput(ip_path);
+  
+  // M: write the target path to the inode
+  if(writei(ip, 0, (uint64)target, 0, MAXPATH) < MAXPATH) {
+    iunlockput(ip);
     end_op();
     return -1;
   }
 
-  iunlockput(ip_path);
+  // M: unlock the inode and end the operation
+  // M: the locked ip is returned by the create function above
+  iunlockput(ip);
   end_op();
   return 0;
 }
