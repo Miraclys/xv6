@@ -64,9 +64,11 @@ kfree(void *pa)
   // M: temp = useReference[(uint64)pa/PGSIZE] so that we can release the lock?
   temp = useReference[(uint64)pa/PGSIZE];
   release(&ref_count_lock);
+
   if (temp > 0)
     return;
 
+  // M: if temp == 0, the physical memory is not used by any process
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 

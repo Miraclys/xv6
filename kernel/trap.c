@@ -36,9 +36,12 @@ cowhandler(pagetable_t pagetable, uint64 va)
     char *mem;
     if (va >= MAXVA)
       return -1;
+
+    // // M: get the pte
     pte_t *pte = walk(pagetable, va, 0);
     if (pte == 0)
       return -1;
+
     // check the PTE
     // M: check the PTE whether is COW fork() 
     // M: check the user can access the memory
@@ -46,16 +49,20 @@ cowhandler(pagetable_t pagetable, uint64 va)
     if ((*pte & PTE_RSW) == 0 || (*pte & PTE_U) == 0 || (*pte & PTE_V) == 0) {
       return -1;
     }
+    
     if ((mem = kalloc()) == 0) {
       return -1;
     }
+
     // old physical address
     uint64 pa = PTE2PA(*pte);
+
     // copy old data to new mem
     // M: copy the data from pa to mem 
     // M: mem is the new allocated memory for the COW fork()
     // M: pa is the old memory that the COW fork() is based on
     memmove((char*)mem, (char*)pa, PGSIZE);
+
     // PAY ATTENTION
     // decrease the reference count of old memory page, because a new page has been allocated
     // M: we will decrease the reference first
@@ -116,12 +123,15 @@ usertrap(void)
     
     // M: get the virtual address that caused the page fault
     uint64 va = r_stval();
+
     // M: va >= p->sz means the virtual address is out of the range of the process's memory
     // M: then we will kill the process
     if (va >= p->sz)
       p->killed = 1;
-    // M: 
+
+    // M: get the handler return value
     int ret = cowhandler(p->pagetable, va);
+
     // M: if ret != 0, then we will kill the process
     if (ret != 0)
       p->killed = 1;

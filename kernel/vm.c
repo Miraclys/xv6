@@ -315,7 +315,9 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
-// M: we should modify this function to implement the copy-on-write
+// M: copy a user page table from old to new
+// M: the fork() system call will call this function to copy the user page table
+// M: so we should implement the copy-on-write in this function
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
@@ -325,6 +327,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   // char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
+
+    // M: walk is used to get the PTE of the virtual address
+    // M: it seems that we should have mapping for the whole memory?
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
@@ -340,16 +345,16 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       *pte |= PTE_RSW;
     }
     pa = PTE2PA(*pte);
-    // increment the ref count
+
+    // M: record the reference count of the physical page
     acquire(&ref_count_lock);
     useReference[pa/PGSIZE] += 1;
     release(&ref_count_lock);
+
     flags = PTE_FLAGS(*pte);
-    // if((mem = kalloc()) == 0)
-      // goto err;
-    // memmove(mem, (char*)pa, PGSIZE);
+
+    // M: map the page to the new page table
     if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
-      // kfree(mem);
       goto err;
     }
   }
@@ -395,18 +400,17 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
-    // pte = walk(pagetable, va0, 0);
-    // if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0 ||
-    //    (*pte & PTE_W) == 0)
-    //   return -1;
-    // pa0 = PTE2PA(*pte);
+
     struct proc *p = myproc();
     pte_t *pte = walk(pagetable, va0, 0);
     if (*pte == 0)
       p->killed = 1;
-    // check
+
+    // M: why we need p here?
+    // M: check if the page is COW page
     if (checkcowpage(va0, pte, p)) 
     {
+      // M: allocate a new memory page for the COW page
       char *mem;
       if ((mem = kalloc()) == 0) {
         // kill the process
