@@ -561,7 +561,10 @@ sleep(void *chan, struct spinlock *lk)
 
   sched();
 
+  // M: the cpu will switch to another process
+  // and when the process is switched back, it will return here
   // Tidy up.
+  // M: point to NULL
   p->chan = 0;
 
   // Reacquire original lock.

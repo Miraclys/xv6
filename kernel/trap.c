@@ -165,6 +165,7 @@ clockintr()
 {
   acquire(&tickslock);
   ticks++;
+  // M: wakeup the ticks channel
   wakeup(&ticks);
   release(&tickslock);
 }

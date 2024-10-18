@@ -58,13 +58,20 @@ sys_sleep(void) // M: void here, but argument is passed in argint
   argint(0, &n); // M: get the NO.0 argument, put it in n
   if(n < 0)
     n = 0;
-  acquire(&tickslock); // M: acquire the lock
+  acquire(&tickslock); // M: acquire the lock, this a global lock of ticks
   ticks0 = ticks; // M: ticks is a global variable which means the number of clock ticks since the system started
-  while(ticks - ticks0 < n){ // M: actually, we will sleep at least n ticks instead of exactly n ticks
+  while(ticks - ticks0 < n){ 
+    // M: actually, we will sleep at least n ticks instead of exactly n ticks
+    // M: check if the process is killed
+    // M: if the process is killed, return -1
     if(killed(myproc())){
       release(&tickslock);
       return -1;
     }
+    
+    // M: sleep the process
+    // M: and then release the tickslock, waiting for the ticks channel
+    // M: when return, acquire the tickslock again
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
