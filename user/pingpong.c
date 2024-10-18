@@ -10,6 +10,8 @@ int main(int argc, char* argv[]) {
 	int child2parent[2];
 	int parent2child[2];
 
+	// M: create two pipes
+	// M: one pipe only for one direction communication
 	pipe(child2parent);
 	pipe(parent2child);
 
@@ -24,28 +26,31 @@ int main(int argc, char* argv[]) {
 		close(child2parent[WRITE]);
 		exit(1);
 	} else if (pid == 0) {
+
+		// M: the child process
+
 		close(parent2child[WRITE]);
 		close(child2parent[READ]);
 
-		// 先执行的话会阻塞
+		// M: if the child process execute first, the child process will block
 		if (read(parent2child[READ], &data, sizeof(char)) != sizeof(char)) {
 			fprintf(2, "[ERROR] child read error.");
 			flg = 1;
 		} else {
 			fprintf(1, "%d: received ping\n", getpid());
 		}
-		close(parent2child[READ]); // M: try to close here
+		close(parent2child[READ]); // M: finish reading, close the pipe
 
 		if (write(child2parent[WRITE], &data, sizeof(char)) != sizeof(char)) {
 			fprintf(2, "[ERROR] child write error.");
 			flg = 1;
 		}
-
-		// close(parent2child[READ]);
+		// finish writing, close the pipe
 		close(child2parent[WRITE]);
 
 		exit(flg);
 	} else {
+
 		close(child2parent[WRITE]);
 		close(parent2child[READ]);
 
@@ -53,9 +58,9 @@ int main(int argc, char* argv[]) {
 			fprintf(2, "[ERROR] parent write error.");
 			flg = 1;
 		}
-		close(parent2child[WRITE]); // M: try to close here
+		close(parent2child[WRITE]); // M: finish writing, close the pipe
 
-		// 这里会阻塞，等待子进程写入
+		// wait for child process to write
 		if (read(child2parent[READ], &data, sizeof(char)) != sizeof(char)) {
 			fprintf(2, "[ERROR] parent read error.");
 			flg = 1;
