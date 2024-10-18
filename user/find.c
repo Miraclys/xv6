@@ -21,6 +21,7 @@ void find(char* path, char* filename) {
         return ;
     }    
 
+    // M: the path should be a directory
     if (st.type != T_DIR) {
         // fprintf(2, "find: %s is not a directory\n", path);
         fprintf(2, "[ERROR] usage: find <directory> <filename>\n");
@@ -33,6 +34,7 @@ void find(char* path, char* filename) {
     // M: if the argument path is end with '/', we will get diretory//filename, which is also correct
     *p++ = '/';
 
+    // M: one byte for '/' and one byte for '\0'
     if (strlen(path) + 1 + DIRSIZ + 1 > sizeof(buf)) {
         fprintf(2, "[ERROR] path too long\n");
         return ;
@@ -53,6 +55,8 @@ void find(char* path, char* filename) {
             continue;
         }
 
+        // M: is a directory, and not the current directory and parent directory
+        // M: find recursively
         if (st.type == T_DIR && strcmp(p, ".") != 0 && strcmp(p, "..") != 0) {
             find(buf, filename);
         } else if (strcmp(filename, p) == 0) {

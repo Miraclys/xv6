@@ -19,6 +19,8 @@ fmtname(char *path)
   // Return blank-padded name.
   if(strlen(p) >= DIRSIZ)
     return p;
+  // M: move the data from p to buf
+  // M: this function could handle overlap
   memmove(buf, p, strlen(p));
   memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
   return buf;
@@ -29,7 +31,9 @@ ls(char *path)
 {
   char buf[512], *p;
   int fd;
+  // M: the struct of directory entry
   struct dirent de;
+  // M: the struct of file status
   struct stat st;
 
   // M: get the file descriptor
