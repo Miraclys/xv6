@@ -82,6 +82,10 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+
+  // M: the start address
+  // M: the number of pages
+  // M: the address of access bits
   uint64 va;
   int pagenum;
   uint64 abitsaddr;
@@ -98,19 +102,27 @@ sys_pgaccess(void)
   // M: maskbits is used to store the accessed bits
   uint64 maskbits = 0;
   struct proc *proc = myproc();
+
   // M: we should check pagenum pages
   for (int i = 0; i < pagenum; i++) {
+
+    // M: obtain the corresponding pte
     pte_t *pte = walk(proc->pagetable, va+i*PGSIZE, 0);
+
     if (pte == 0)
       panic("[ERROR] sys_pagccess page not exist.");
+
     // M: PTE_FLAGS is used to get the flags of the pte
+    // M: if the page is accessed
     if (PTE_FLAGS(*pte) & PTE_A) {
       maskbits = maskbits | (1L << i);
     }
+
     // clear PTE_A, set PTE_A bits zero
     // M: so that we could check the accessed bits of the pages next time
     *pte = ((*pte&PTE_A) ^ *pte) ^ 0 ;
   }
+
   // M: copy the maskbits to the valuable whose address is abitsaddr in the user space
   if (copyout(proc->pagetable, abitsaddr, (char *)&maskbits, sizeof(maskbits)) < 0)
     panic("[ERROR] sys_pgacess copyout error");
