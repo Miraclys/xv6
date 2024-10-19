@@ -9,7 +9,8 @@ static int nthread = 1;
 // M: round is the number of times the barrier has been passed
 static int round = 0;
 
-struct barrier {
+struct barrier 
+{
   pthread_mutex_t barrier_mutex;
   pthread_cond_t barrier_cond;
   int nthread;      // Number of threads that have reached this round of the barrier
@@ -22,6 +23,7 @@ barrier_init(void)
   assert(pthread_mutex_init(&bstate.barrier_mutex, NULL) == 0);
   assert(pthread_cond_init(&bstate.barrier_cond, NULL) == 0);
   bstate.nthread = 0;
+  bstate.round = 0;
 }
 
 // M: this is the function we need to implement
@@ -56,6 +58,7 @@ barrier()
   pthread_mutex_unlock(&bstate.barrier_mutex);
 }
 
+// M: the function of each thread
 static void *
 thread(void *xa)
 {
@@ -76,6 +79,8 @@ thread(void *xa)
 int
 main(int argc, char *argv[])
 {
+
+  // M: pthread_t is a struct that represents a thread
   pthread_t *tha;
   void *value;
   long i;
@@ -85,6 +90,8 @@ main(int argc, char *argv[])
     fprintf(stderr, "%s: %s nthread\n", argv[0], argv[0]);
     exit(-1);
   }
+
+  // M: argv[1] is the number of threads
   nthread = atoi(argv[1]);
   tha = malloc(sizeof(pthread_t) * nthread);
   srandom(0);
