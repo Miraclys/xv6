@@ -101,6 +101,7 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+
 extern uint64 sys_trace(void);
 extern uint64 sys_sysinfo(void);
 
@@ -128,6 +129,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+
 [SYS_trace]   sys_trace,
 [SYS_sysinfo] sys_sysinfo,
 };
@@ -159,6 +161,9 @@ static char* syscalls_name[] = {
   [SYS_sysinfo] "syscall sysinfo",
 };
 
+// M: when the kernel receives "ecall" and store the system call number in the trapframe
+// M: it will call this function
+// M: this function will call the corresponding system call function
 void
 syscall(void)
 {
@@ -174,6 +179,7 @@ syscall(void)
     // and store its return value in p->trapframe->a0
     // p->trapframe->a0 = syscalls[num]();
 
+    // M: a0 is the return value of the system call
     uint64 a0 = syscalls[num]();
     if ((p->mask >> num) & 0b1) { // M: actually, this is the mask for all trace system call, instead of the mask for the specific system call
       printf("%d: %s -> %d\n", p->pid, syscalls_name[num], a0);

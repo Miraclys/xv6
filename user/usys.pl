@@ -36,5 +36,9 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+
+# generate a interface for the sysinfo syscall
 entry("sysinfo");
+
+# generate a interface for the trace syscall
 entry("trace"); # add the trace syscall
