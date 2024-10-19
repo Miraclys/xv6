@@ -68,6 +68,19 @@ binit(void)
     bcache.bucket[bucket_index].head.next->prev = b;
     bcache.bucket[bucket_index].head.next = b;
   }
+
+  // M: in fact, we have implemented the LRU replacing algo
+  // M: so, whether we allocate the buffer blocks for different hash buckets or not is not important
+  // M: if the buffer in a bucket is not enough, we could steal the buffer from other buckets
+  // for (b = bcache.buf; b < bcache.buf + NBUF; b++) {
+  //   b->next = bcache.bucket[0].head.next;
+  //   b->prev = &bcache.bucket[0].head;
+  //   char name[16];
+  //   snprintf(name, sizeof(name), "buffer%d", b - bcache.buf);
+  //   initsleeplock(&b->lock, name);
+  //   bcache.bucket[0].head.next->prev = b;
+  //   bcache.bucket[0].head.next = b;
+  // }
 }
 
 // M: use the LRU algorithm to replace the buffer block
