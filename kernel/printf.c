@@ -122,6 +122,10 @@ panic(char *s)
   printf("panic: ");
   printf(s);
   printf("\n");
+
+  // backtrace
+  backtrace();
+
   panicked = 1; // freeze uart output from other CPUs
   for(;;)
     ;
@@ -138,18 +142,23 @@ printfinit(void)
 void
 backtrace(void)
 {
+  
   // M: r_fp() returns the value of the frame pointer register
   uint64 fp_address = r_fp();
+  
   // M: judge whether reach the top of the stack by aligning down
   printf("backtrace:\n");
+  
   // M: when fp_addr == PGROUNDDOWN(fp_address), it means the top of the stack
   while (fp_address != PGROUNDDOWN(fp_address)) {
     // printf("%p %p\n", fp_address, PGROUNDDOWN(fp_address));
     // if (fp_address == PGROUNDDOWN(fp_address)) {
     //   break;
     // }
+
     // M: print the return address
     printf("%p\n", *(uint64*)(fp_address - 8));
+    
     // M: the layout is in the markdown file
     fp_address = *(uint64*)(fp_address - 16);
   }
