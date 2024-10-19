@@ -5,7 +5,8 @@
 #define WRITE 1
 
 void primes(int pipefd[2]) {
-    close(pipefd[WRITE]);
+
+    // close(pipefd[WRITE]);
 
     int first_data, flg = 0, cur_data;
 
@@ -20,11 +21,13 @@ void primes(int pipefd[2]) {
 
     fprintf(1, "prime %d\n", first_data);
 
+    // M: create a pipe for the right child
     int right_pipefd[2];
     pipe(right_pipefd);
-    // close(right_pipefd[READ]);
 
+    // M: read from the left pipe and write to the right pipe
     while (read(pipefd[READ], &cur_data, sizeof(int)) == sizeof(int)) {
+        // M: cur_data is not the multiple of first_data
         if (cur_data % first_data != 0) {
             write(right_pipefd[WRITE], &cur_data, sizeof(int));
         }
@@ -37,19 +40,20 @@ void primes(int pipefd[2]) {
         primes(right_pipefd);
     } else {
         // close(right_pipefd[WRITE]);
+        close(right_pipefd[READ]);
         wait(0);
     }
 }
 
 int main() {
+
     int pipefd[2];
     pipe(pipefd);
-
-    // close(pipefd[READ]); 一开始关闭过早，子进程 fork 后也是关闭的。
 
     for (int i = 2; i <= 35; ++i) {
         write(pipefd[WRITE], &i, sizeof(i));
     }
+    close(pipefd[WRITE]);
 
     int pid = fork();
     if (pid == 0) {
