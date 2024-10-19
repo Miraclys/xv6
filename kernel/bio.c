@@ -57,6 +57,7 @@ binit(void)
     bcache.bucket[i].head.next = &bcache.bucket[i].head;
   }
 
+  // M: allocate the buffer blocks for different hash buckets
   for (b = bcache.buf; b < bcache.buf + NBUF; b++) {
     int bucket_index = hash(b - bcache.buf);
     b->next = bcache.bucket[bucket_index].head.next;
@@ -69,6 +70,8 @@ binit(void)
   }
 }
 
+// M: use the LRU algorithm to replace the buffer block
+// M: obtain the buffer block pointer
 struct buf* 
 get_buffer_ptr(uint dev, uint blockno, int bid) {
 
@@ -79,18 +82,24 @@ get_buffer_ptr(uint dev, uint blockno, int bid) {
   // M: we use the LRU algorithm to replace the buffer block
   for(int i = bid, time = 0; time != NBUCKET; i = (i + 1) % NBUCKET) {
     ++time;
+
+    // M: we maybe steal the buffer block from other hash bucket
     if(i != bid) {
       if(!holding(&bcache.bucket[i].lock))
         acquire(&bcache.bucket[i].lock);
       else
         continue;
     }
+
     // M: start from the head of the list
     // M: which means the least recently used buffer block
     for(tmp = bcache.bucket[i].head.next; tmp != &bcache.bucket[i].head; tmp = tmp->next)
       if(tmp->refcnt == 0 && (b == 0 || tmp->timestamps < b->timestamps))
         b = tmp;
+
     if(b) {
+
+      // M: we steal the buffer block from other hash bucket
       if(i != bid) {
         b->next->prev = b->prev;
         b->prev->next = b->next;
@@ -109,6 +118,7 @@ get_buffer_ptr(uint dev, uint blockno, int bid) {
       b->valid = 0;
       b->refcnt = 1;
 
+      // M: update the timestamps
       acquire(&tickslock);
       b->timestamps = ticks;
       release(&tickslock);
@@ -132,6 +142,7 @@ bget(uint dev, uint blockno)
 {
   struct buf* b;
 
+  // M: obtain the hash id
   int bid = hash(blockno);
   acquire(&bcache.bucket[bid].lock);
 
@@ -149,6 +160,8 @@ bget(uint dev, uint blockno)
     }
   }
 
+  // M: if the block is not cached
+  // M: we should allocate a buffer block
   struct buf* buffer_ptr = get_buffer_ptr(dev, blockno, bid);
   
   if (buffer_ptr == 0) {
@@ -166,6 +179,7 @@ bread(uint dev, uint blockno)
 
   b = bget(dev, blockno);
   if(!b->valid) {
+
     // M: read from the disk
     // M: talk to the disk hardware
     virtio_disk_rw(b, 0);
@@ -192,8 +206,11 @@ brelse(struct buf *b)
   if (!holdingsleep(&b->lock))
     panic("brelse");
 
+  // M: obtain the hash id
   int id = hash(b->blockno);
+
   releasesleep(&b->lock);
+  
   acquire(&bcache.bucket[id].lock);
   b->refcnt--;
   if (b->refcnt == 0) {

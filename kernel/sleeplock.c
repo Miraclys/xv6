@@ -21,8 +21,12 @@ initsleeplock(struct sleeplock *lk, char *name)
 void
 acquiresleep(struct sleeplock *lk)
 {
+  
+  // M: the spinlock will be busy waiting
   acquire(&lk->lk);
   while (lk->locked) {
+
+    // M: the sleeplock will be sleeping and release the spinlock
     sleep(lk, &lk->lk);
   }
   lk->locked = 1;
