@@ -91,12 +91,14 @@ kalloc(void)
   if(r) {
     kmem[cpu].freelist = r->next;
   } else {
+
     // M: the current CPU does not have any free pages
     // M: so we should steal a free page from the others
     struct run* tmp;
     for (int i = 0; i < NCPU; ++i) {
       if (i == cpu)
         continue;
+
       acquire(&kmem[i].lock);
       tmp = kmem[i].freelist;
       if (tmp == 0) {
@@ -111,6 +113,7 @@ kalloc(void)
         }
         kmem[cpu].freelist = kmem[i].freelist;
         kmem[i].freelist = tmp->next;
+        
         // M: split the cpu's freelist and the stealed freelist
         tmp->next = 0;
         release(&kmem[i].lock);
