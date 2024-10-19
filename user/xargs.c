@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    // M: the maximum number of arguments is MAXARG - 1
     char* argvs[MAXARG];
     int index = 0;
     for (int i = 1; i < argc; ++i) {
@@ -22,15 +23,20 @@ int main(int argc, char* argv[]) {
 
     int n;
     char temp[MAXN];
+
     // M: read the input from stdin, store it in buf
     while ((n = read(0, buf, MAXN)) > 0) {
         int j = 0;
+
+        // M: iterate the n characters in the buffer
         for (int i = 0; i < n; ++i) {
+
             // M: if the current character is '\n' or the last character in the buffer
             if (buf[i] == '\n' || i == n - 1) {
                 if (buf[i] != '\n') {
                     temp[j++] = buf[i];
                 }
+                
                 // M: the two kinds of implementation are the same
                 temp[j] = 0;
                 // temp[j] = '\0';
@@ -42,6 +48,7 @@ int main(int argc, char* argv[]) {
                     argvs[index + 1] = 0; 
                 }
                 if (fork() == 0) {
+                    
                     // M: only add one argument to the argvs a time
                     exec(argv[1], argvs);
                     exit(1);
