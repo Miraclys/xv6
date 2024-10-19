@@ -121,6 +121,7 @@ sys_sigreturn(void)
   struct proc *p = myproc();
   *p->trapframe = p->saved_trapframe;
   p->returned = 1;
+  
   // M: a0 stores the return value
   // M: or stores the first argument of the system call
   // M: but here, it stores the return value

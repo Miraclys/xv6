@@ -85,8 +85,10 @@ usertrap(void)
  // M: handle the clock interupt and the alarm interupt
  if (which_dev == 2) {
     struct proc *p = myproc();
+
     // M: handle the alarm interupt
     if (p->alarm_interval && p->returned) {
+    
       // if (++p->emulated_alarm_interval == 2) {
       if (++p->emulated_alarm_interval == p->alarm_interval) {
         p->saved_trapframe = *p->trapframe;
@@ -96,6 +98,7 @@ usertrap(void)
         p->returned = 0;
       }
     }
+    
     // M: abandon CPU
     yield();
  }
