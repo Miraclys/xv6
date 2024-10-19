@@ -108,7 +108,10 @@ thread_create(void (*func)())
   t->context.sp = (uint64)&t->stack[STACK_SIZE - 1];
   // M: let the ra point to the function.
   // M: so that we could run the function when we switch to the thread.
-  t->context.ra = (uint64)(*func);
+  
+  // M: it seems that the two lines below are equivalent.
+  //t->context.ra = (uint64)(*func);
+  t->context.ra = (uint64)(func);
 }
 
 void 
