@@ -37,7 +37,7 @@ cowhandler(pagetable_t pagetable, uint64 va)
     if (va >= MAXVA)
       return -1;
 
-    // // M: get the pte
+    // M: get the pte
     pte_t *pte = walk(pagetable, va, 0);
     if (pte == 0)
       return -1;
@@ -68,6 +68,7 @@ cowhandler(pagetable_t pagetable, uint64 va)
     // M: we will decrease the reference first
     // M: if the reference count is 0, then we will free the memory
     kfree((void*)pa);
+
     uint flags = PTE_FLAGS(*pte);
     // set PTE_W to 1, change the address pointed to by PTE to new memory page(mem)
     *pte = (PA2PTE(mem) | flags | PTE_W);
@@ -113,7 +114,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if (r_scause() == 15) {
+  } else if (r_scause() == 15 || r_scause() == 13) {
     // Store/AMO page fault(write page fault) and Load page fault
     // see Volume II: RISC-V Privileged Architectures V20211203 Page 71
     

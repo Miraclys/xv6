@@ -88,6 +88,7 @@ kvminithart()
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
 // M: if alloc == 0, we will only search and won't allocate a new page table page
+// M: if alloc == 1, we will allocate a new page table page if we can't find the corresponding PTE
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
@@ -163,14 +164,20 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   
   a = va;
   last = va + size - PGSIZE;
+
+  // M: we may map multiple pages in one call
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
       panic("mappages: remap");
+
+    // M: set the flags for the PTE
     *pte = PA2PTE(pa) | perm | PTE_V;
+    
     if(a == last)
       break;
+
     a += PGSIZE;
     pa += PGSIZE;
   }

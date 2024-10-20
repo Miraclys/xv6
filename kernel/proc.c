@@ -284,6 +284,7 @@ fork(void)
   struct proc *p = myproc();
 
   // Allocate process.
+  // M: np is the new process
   if((np = allocproc()) == 0){
     return -1;
   }
