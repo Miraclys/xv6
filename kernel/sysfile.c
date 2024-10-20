@@ -311,7 +311,10 @@ sys_open(void)
   struct inode *ip;
   int n;
 
+  // M: omode means the open mode 
   argint(1, &omode);
+
+  // M: get the path of the file
   if((n = argstr(0, path, MAXPATH)) < 0)
     return -1;
 
@@ -324,10 +327,12 @@ sys_open(void)
       return -1;
     }
   } else {
+    // M: get the path's inode
     if((ip = namei(path)) == 0){
       end_op();
       return -1;
     }
+
     ilock(ip);
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
@@ -344,6 +349,7 @@ sys_open(void)
 
   // handle the case of opening a symbolic link
   if(ip->type == T_SYMLINK && !(omode & O_NOFOLLOW)) {
+    
     // M: the maximum depth is defined in fs.h
     // M: a symlink can also be a target of another symlink
     for(int i = 0; i < MAX_SYMLINK_DEPTH; ++i) {
@@ -354,6 +360,7 @@ sys_open(void)
         return -1;
       }
       iunlockput(ip);
+
       // M: get the inode of the target file
       ip = namei(path);
       if(ip == 0) {
@@ -364,6 +371,7 @@ sys_open(void)
       if(ip->type != T_SYMLINK)
         break;
     }
+
     // M: if the symlink is too deep, return error
     if(ip->type == T_SYMLINK) {
       iunlockput(ip);
@@ -372,6 +380,7 @@ sys_open(void)
     }
   }
 
+  // M: allocate a file structure and a file descriptor
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -380,6 +389,7 @@ sys_open(void)
     return -1;
   }
 
+  // M: initialize the file structure
   if(ip->type == T_DEVICE){
     f->type = FD_DEVICE;
     f->major = ip->major;
@@ -541,6 +551,8 @@ sys_symlink(void) {
   char target[MAXPATH], path[MAXPATH];
   struct inode* ip;
 
+  // M: obtain the two arguments
+  // M: one target and one path
   if(argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0) {
     return -1;
   }
@@ -551,16 +563,22 @@ sys_symlink(void) {
   
   // M: create a symbolic link inode in the path position
   // M: we will return a locked inode here
+  // M: so we should unlock it before returning
   ip = create(path, T_SYMLINK, 0, 0);
+  
   if(ip == 0) {
     // M: if the creating is failed, return -1
     end_op();
     return -1;
   }
   
+  // M: create a symbolic link inode successfully
   // M: write the target path to the inode
+  // M: writei() write data to the inode
   if(writei(ip, 0, (uint64)target, 0, MAXPATH) < MAXPATH) {
+    // M: release the inode's lock
     iunlockput(ip);
+
     end_op();
     return -1;
   }
@@ -568,6 +586,7 @@ sys_symlink(void) {
   // M: unlock the inode and end the operation
   // M: the locked ip is returned by the create function above
   iunlockput(ip);
+
   end_op();
   return 0;
 }

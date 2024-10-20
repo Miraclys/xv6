@@ -24,7 +24,7 @@
 #endif
 #define MAXPATH      128   // maximum file path name
 
-#define MAX_SYMLINK_DEPTH 10  // 符号链接递归的最大深度
+#define MAX_SYMLINK_DEPTH 10  // M: the maximum depth of symbolic links
 
 
 

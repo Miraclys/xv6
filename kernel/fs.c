@@ -439,13 +439,21 @@ iunlockput(struct inode *ip)
 // }
 
 // M: map the block number to the disk block address
+// M: this function will be called when reading or writing the file
+// M: bn is the logic block number
+// M: return the disk block address
+// M: *ip is the inode
+// M: bn < NDIRECT: the block is in the direct block
 static uint
 bmap(struct inode *ip, uint bn)
 {
   uint addr, *a;
   struct buf *bp;
 
+  // M: direct block
   if(bn < NDIRECT){
+    // M: the block is not allocated
+    // M: ip->addrs[bn] means the bn-th block's address in the direct block
     if((addr = ip->addrs[bn]) == 0){
       addr = balloc(ip->dev);
       if(addr == 0)
@@ -454,11 +462,13 @@ bmap(struct inode *ip, uint bn)
     }
     return addr;
   }
+
   // M: bn is in the indirect block
   bn -= NDIRECT;
 
   // M: handle the singly indirect block
   if(bn < NINDIRECT){
+
     // Load indirect block, allocating if necessary.
     if((addr = ip->addrs[NDIRECT]) == 0){
       addr = balloc(ip->dev);
@@ -485,7 +495,7 @@ bmap(struct inode *ip, uint bn)
         log_write(bp);
       }
     }
-    // M: 
+    
     brelse(bp);
     return addr;
   }
