@@ -69,6 +69,9 @@ cowhandler(pagetable_t pagetable, uint64 va)
     // M: if the reference count is 0, then we will free the memory
     kfree((void*)pa);
 
+    // M: we only need to update the single block of memory
+    // M: we only visit the single block of memory
+    // M: instead of the whole memory of the process
     uint flags = PTE_FLAGS(*pte);
     // set PTE_W to 1, change the address pointed to by PTE to new memory page(mem)
     *pte = (PA2PTE(mem) | flags | PTE_W);
