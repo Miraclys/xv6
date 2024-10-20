@@ -248,12 +248,16 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
 
   oldsz = PGROUNDUP(oldsz);
   for(a = oldsz; a < newsz; a += PGSIZE){
+
+    // M: alloc a new pyhsical page
     mem = kalloc();
     if(mem == 0){
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
     memset(mem, 0, PGSIZE);
+
+    // M: add new mapping to the page table
     if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
       kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
@@ -464,20 +468,18 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 // in vm.c
 int
 mmap_writeback(pagetable_t pt, uint64 src_va, uint64 len, struct mmap_vma* vma){
-// 把带脏位的页帧写回文件中，并且取消映射
-// 写回的是 src_va 开始的，长度为 len
   uint64 a;
   pte_t *pte;
+  
   for(a = PGROUNDDOWN(src_va); a < PGROUNDDOWN(src_va + len); a += PGSIZE){
     if((pte = walk(pt, a, 0)) == 0){ 
       panic("mmap_writeback: walk");
     }
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("mmap_writeback: not leaf");
-    if(!(*pte & PTE_V)) continue; // 懒分配
+    if(!(*pte & PTE_V)) continue; 
 
     if((*pte & PTE_D) && (vma->flags & MAP_SHARED)){ 
-      // 写回
       begin_op();
       ilock(vma->file->ip);
       uint64 copied_len = a - src_va;

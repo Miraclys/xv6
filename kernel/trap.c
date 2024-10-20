@@ -237,7 +237,6 @@ get_vma_by_addr(uint64 addr){
   struct proc* p = myproc();
   for(int i = 0; i < VMA_SIZE; i++){
     if(p->mmap_vmas[i].in_use && addr >= p->mmap_vmas[i].sta_addr && addr < p->mmap_vmas[i].sta_addr + p->mmap_vmas[i].sz){
-      // 判断该地址是否在文件映射区的中间
       return p->mmap_vmas + i;
     }
   }
@@ -250,27 +249,21 @@ mmap_fault_handler(uint64 addr){
   struct proc* p = myproc();
   struct mmap_vma* cur_vma;
   if((cur_vma = get_vma_by_addr(addr)) == 0){
-    // 找到这个地址属于哪个文件的映射
-    // 等于零说明不属于任何一个
     return -1;
   }
 
   if(!cur_vma->file->readable && r_scause() == 13 && cur_vma->flags & MAP_SHARED){
-    // DEBUG("mmap_fault_handler: not readable\n");
     return -1;
-  } // 读错误
+  } 
     
   if(!cur_vma->file->writable && r_scause() == 15 && cur_vma->flags & MAP_SHARED){
-    // DEBUG("mmap_fault_handler: not writable\n");
     return -1;
-  } // 写错误
+  }
     
-
   uint64 pg_sta = PGROUNDDOWN(addr);
   // uint64 pa = kalloc();
   uint64 pa = (uint64)kalloc();
   if(!pa){
-    // DEBUG("mmap_fault_handler: kalloc failed\n");
     return -1;
   }
 
@@ -280,11 +273,9 @@ mmap_fault_handler(uint64 addr){
   int perm = PTE_U | PTE_V;
   if(cur_vma->prot & PROT_READ) perm |= PTE_R;
   if(cur_vma->prot & PROT_WRITE) perm |= PTE_W;
-  if(cur_vma->prot& PROT_EXEC) perm |= PTE_X;
-  // 在 mmap 的时候已经排除了不可能的情况了
+  if(cur_vma->prot & PROT_EXEC) perm |= PTE_X;
 
   uint64 off = PGROUNDDOWN(addr - cur_vma->sta_addr); 
-  // 这个 off 代表文件拷贝时要跳过多少个页帧
 
   ilock(cur_vma->file->ip);
   int rdret;
@@ -293,8 +284,8 @@ mmap_fault_handler(uint64 addr){
     return -1;
   }
 
-  iunlock(cur_vma->file->ip); // 没有 put 是这个文件之后还需要使用
-                              // 在 unmap 中应该可以 put
+  iunlock(cur_vma->file->ip); 
+
   mappages(p->pagetable, pg_sta, PGSIZE, pa, perm);
   return 0;
 }

@@ -60,17 +60,24 @@ morecore(uint nu)
   return freep;
 }
 
+// M: 
 void*
 malloc(uint nbytes)
 {
+
+  // M: Header is a free block
   Header *p, *prevp;
   uint nunits;
 
   nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header) + 1;
+
+  // M: if the freep is not initialized, initialize it
   if((prevp = freep) == 0){
     base.s.ptr = freep = prevp = &base;
     base.s.size = 0;
   }
+
+  // M: iterate the free block list
   for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
     if(p->s.size >= nunits){
       if(p->s.size == nunits)

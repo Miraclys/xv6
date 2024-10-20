@@ -533,22 +533,23 @@ sys_mmap() {
   }
 
   int vma_index = -1;
-  uint64 vma_addr = get_mmap_space(length, p->mmap_vmas, &vma_index);
+  uint64 sta_addr = get_mmap_space(length, p->mmap_vmas, &vma_index);
 
-  if (vma_addr == -1) {
+  if (vma_index == -1) {
     return -1;
   }
-  if (vma_addr <= p->sz) {
+  if (sta_addr <= p->sz) {
     return -1;
   }
 
   struct mmap_vma* vma = &p->mmap_vmas[vma_index];
   vma->in_use = 1;
-  vma->sta_addr = vma_addr;
+  vma->sta_addr = sta_addr;
   vma->sz = length;
   vma->prot = prot;
   vma->file = file;
   vma->flags = flags;
+
   // M: increase the reference count of the file.
   filedup(file);
 
@@ -560,36 +561,33 @@ uint64
 get_mmap_space(uint64 sz, struct mmap_vma* vmas, int* free_idx){
   *free_idx = -1;
   
-  // 返回一个可以储存新文件映射的地址（开始地址）
-  // 优先查看 vma 槽中的“空隙”，如果没有，那就映射到最下面
-  // 其实可以写一个快速排序，但是我懒。。。
   uint64 lowest_addr = TRAPFRAME;
   
-  struct mmap_vma tmp; // 作为上边界，可能和上图一样，最上方没有任何映射区域
+  struct mmap_vma tmp; 
   tmp.sta_addr = TRAPFRAME, tmp.sz = 0;
 
   for(int i = 0; i <= VMA_SIZE; i++){
-    // 假设 vmas[i] 的 PGROUNDDOWN(sta_addr) 是新文件映射的结束位置
+    
     if(vmas[i].in_use == 0 && i != VMA_SIZE){
       *free_idx = i;
       continue;
     } 
+
     uint64 ed_pos = i != VMA_SIZE ? PGROUNDDOWN(vmas[i].sta_addr) 
                                 : tmp.sta_addr;
 
-    lowest_addr = ed_pos < lowest_addr ? ed_pos : lowest_addr; // 取 min
+    lowest_addr = ed_pos < lowest_addr ? ed_pos : lowest_addr; 
     
     for(int j = 0; j < VMA_SIZE; j++){
-      // 假设 vmas[j] 的 sta_addr + sz（vma[j] 的结束位置） 往上是新映射的起始位置
+      
       if(vmas[j].in_use == 0 && i != VMA_SIZE) continue;
 
       uint64 st_pos = i != VMA_SIZE ? vmas[j].sta_addr + vmas[j].sz 
-                                  : tmp.sta_addr + tmp.sz; // 这个位置一定是页对齐的
+                                  : tmp.sta_addr + tmp.sz;
                                   
       if (ed_pos <= st_pos) continue; 
-      // 这里直接跳过，不在下面判断是因为无符号类，如果做下面的减法会出错
+
       if (ed_pos - st_pos >= sz){
-        // [st_pos, ed_pos) 的区间
         return st_pos;
       }
     }
@@ -603,24 +601,22 @@ uint64
 munmap(uint64 addr, uint64 len){
   struct proc* p = myproc();
   struct mmap_vma* cur_vma = get_vma_by_addr(addr);
+
   if(!cur_vma)
     return -1;
 
   if(addr > cur_vma->sta_addr && addr + len < cur_vma->sta_addr + cur_vma->sz){
-    // 从中间挖洞
     return -1;
   }
 
   mmap_writeback(p->pagetable, addr, len, cur_vma);
  
   if(addr == cur_vma->sta_addr){ 
-    // 从起始位置删除的
     cur_vma->sta_addr += len;
   } 
   cur_vma->sz -= len;
   
   if(cur_vma->sz <= 0){
-    // 如果整个映射区都没了
     fileclose(cur_vma->file);
     cur_vma->in_use = 0;
   }

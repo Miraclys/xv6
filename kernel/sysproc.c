@@ -35,6 +35,7 @@ sys_wait(void)
   return wait(p);
 }
 
+// M: the user use sbrk system call to increase the size of the heap
 uint64
 sys_sbrk(void)
 {
@@ -42,7 +43,10 @@ sys_sbrk(void)
   int n;
 
   argint(0, &n);
+  
+  // M: myproc()->sz stores the size of the process's heap
   addr = myproc()->sz;
+  
   if(growproc(n) < 0)
     return -1;
   return addr;

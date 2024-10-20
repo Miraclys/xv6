@@ -87,11 +87,11 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 #define VMA_SIZE 16
 
 struct mmap_vma{
-  int in_use;      // 该 vma 结构体是否代表了一个正在使用的文件映射
-  uint64 sta_addr; // 起始地址
-  uint64 sz;       // 映射大小
+  int in_use;         
+  uint64 sta_addr;   // the start address of the mapping
+  uint64 sz;         // the size of the mapping
   int prot;
-  struct file* file; // 映射的文件
+  struct file* file;  
   int flags;         // map_shared or map_private
 };
 

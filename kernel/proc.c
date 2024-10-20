@@ -265,11 +265,16 @@ growproc(int n)
   struct proc *p = myproc();
 
   sz = p->sz;
+
+  // M: n > 0 means the process is trying to grow its heap
   if(n > 0){
     if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
       return -1;
     }
   } else if(n < 0){
+
+    // n < 0 means the process is trying to shrink its heap
+
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
   p->sz = sz;
@@ -294,7 +299,6 @@ fork(void)
     if(p->mmap_vmas[i].in_use){
       np->mmap_vmas[i] = p->mmap_vmas[i]; 
       filedup(p->mmap_vmas[i].file);
-      // 复制 vma
     }
   }
 
