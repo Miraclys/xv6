@@ -468,23 +468,32 @@ stati(struct inode *ip, struct stat *st)
 // Caller must hold ip->lock.
 // If user_dst==1, then dst is a user virtual address;
 // otherwise, dst is a kernel address.
+// M: read the corresponding file data of the inode to the target address
 int
 readi(struct inode *ip, int user_dst, uint64 dst, uint off, uint n)
 {
   uint tot, m;
   struct buf *bp;
 
+  // M: ip->size is the size of the file
+  // M: off is the offset in the file
   if(off > ip->size || off + n < off)
     return 0;
   if(off + n > ip->size)
     n = ip->size - off;
 
   for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
+
+    // M: get the disk block number for the offset
+    // M: in file system, we implement two level of mapping
     uint addr = bmap(ip, off/BSIZE);
     if(addr == 0)
       break;
     bp = bread(ip->dev, addr);
+
+    // M: the bytes read from the disk block
     m = min(n - tot, BSIZE - off%BSIZE);
+
     if(either_copyout(user_dst, dst, bp->data + (off % BSIZE), m) == -1) {
       brelse(bp);
       tot = -1;

@@ -248,6 +248,8 @@ int
 mmap_fault_handler(uint64 addr){
   struct proc* p = myproc();
   struct mmap_vma* cur_vma;
+
+  // M: if the address is not in any of the vma, return -1
   if((cur_vma = get_vma_by_addr(addr)) == 0){
     return -1;
   }

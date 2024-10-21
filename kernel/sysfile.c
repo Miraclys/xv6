@@ -528,6 +528,9 @@ sys_mmap() {
   if (addr || offset) {
     return -1;
   }
+
+  // M: if the file is not wriablt and 
+  // the prot is PROT_WRITE and the flags is MAP_SHARED, return -1.
   if (!file->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)) {
     return -1;
   }
