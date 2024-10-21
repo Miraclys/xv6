@@ -11,10 +11,12 @@
 
 #define TX_RING_SIZE 16
 static struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
+// M: store the mbufs that are ready to be sent
 static struct mbuf *tx_mbufs[TX_RING_SIZE];
 
 #define RX_RING_SIZE 16
 static struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
+// M: store the mbufs that are ready to be received
 static struct mbuf *rx_mbufs[RX_RING_SIZE];
 
 // remember where the e1000's registers live.
@@ -87,6 +89,7 @@ e1000_init(uint32 *xregs)
   regs[E1000_RDH] = 0;
   // M: the register E1000_RDT is the tail of the receive descriptor ring
   regs[E1000_RDT] = RX_RING_SIZE - 1;
+  // regs[E1000_RDT] = 0;
   // M: the register E1000_RDLEN is the length of all receive descriptor rings
   regs[E1000_RDLEN] = sizeof(rx_ring);
 
@@ -130,7 +133,7 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   acquire(&e1000_lock);
-  uint32 tdt = regs[E1000_TDT]; // 队列尾
+  uint32 tdt = regs[E1000_TDT]; 
   struct tx_desc *desc = &tx_ring[tdt];
 
   // M: if the E1000 is not ready now
@@ -140,11 +143,14 @@ e1000_transmit(struct mbuf *m)
   }
 
   // M: free the previous transmit buffer
+  // M: the tx_mbufs still points to a buffer area
+  // M: but the buffer area is ready, so we can free it
   if(tx_mbufs[tdt]){
     mbuffree(tx_mbufs[tdt]);
   };
 
   // M: save the mbuf
+  // M: point to the buffer area
   tx_mbufs[tdt] = m;
 
   // M: construct the descriptor
@@ -175,12 +181,14 @@ e1000_recv(void)
   // Create and deliver an mbuf for each packet (using net_rx()).
   //
 
+  // M: get the tail position
   uint32 rdt = regs[E1000_RDT];
   uint32 tail = (rdt + 1) % RX_RING_SIZE;
   struct rx_desc *desc = &rx_ring[tail];
 
   // M: ready to receive packets
   // M: pay attention to the while loop here, instead of only receiving one packet
+  // M: we will receive all the packets that are ready to be received
   while(desc->status & E1000_RXD_STAT_DD){
 
     // M: because the process of reveiving packets of e1000 is passive
@@ -205,6 +213,7 @@ e1000_recv(void)
       panic("e1000_recv mbufalloc failed");
     }
 
+    // M: update the descriptor
     desc->addr = (uint64)rx_mbufs[tail]->head;
     desc->status = 0;
 

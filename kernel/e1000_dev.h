@@ -98,13 +98,14 @@
 #define E1000_TXD_STAT_DD    0x00000001 /* Descriptor Done */
 
 // [E1000 3.3.3]
+// M: the meta data of a data packet to be sent
 struct tx_desc
 {
-  uint64 addr;
-  uint16 length;
+  uint64 addr;      /* Address of the descriptor's data buffer */
+  uint16 length;    /* Data buffer length */
   uint8 cso;
   uint8 cmd;
-  uint8 status;
+  uint8 status;     /* Descriptor status */
   uint8 css;
   uint16 special;
 };
