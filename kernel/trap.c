@@ -254,10 +254,10 @@ mmap_fault_handler(uint64 addr){
     return -1;
   }
 
+  // M: check the permission of the vma
   if(!cur_vma->file->readable && r_scause() == 13 && cur_vma->flags & MAP_SHARED){
     return -1;
   } 
-    
   if(!cur_vma->file->writable && r_scause() == 15 && cur_vma->flags & MAP_SHARED){
     return -1;
   }
@@ -277,10 +277,13 @@ mmap_fault_handler(uint64 addr){
   if(cur_vma->prot & PROT_WRITE) perm |= PTE_W;
   if(cur_vma->prot & PROT_EXEC) perm |= PTE_X;
 
+  // M: the offset of the file
   uint64 off = PGROUNDDOWN(addr - cur_vma->sta_addr); 
 
   ilock(cur_vma->file->ip);
   int rdret;
+  
+  // M: read the data of the file to the pa physical address
   if((rdret = readi(cur_vma->file->ip, 0, pa, off, PGSIZE)) == 0){
     iunlock(cur_vma->file->ip);
     return -1;

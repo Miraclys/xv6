@@ -84,8 +84,8 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-// #define VMA_SIZE 16
-#define VMA_SIZE 100
+#define VMA_SIZE 16
+// #define VMA_SIZE 100
 
 struct mmap_vma{
   int in_use;         

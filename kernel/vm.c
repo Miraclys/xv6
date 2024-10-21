@@ -472,19 +472,29 @@ mmap_writeback(pagetable_t pt, uint64 src_va, uint64 len, struct mmap_vma* vma){
   pte_t *pte;
   
   for(a = PGROUNDDOWN(src_va); a < PGROUNDDOWN(src_va + len); a += PGSIZE){
+    
+    // M: get the pte of the address
     if((pte = walk(pt, a, 0)) == 0){ 
       panic("mmap_writeback: walk");
     }
+
+    // M: if the pte is not valid, continue
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("mmap_writeback: not leaf");
     if(!(*pte & PTE_V)) continue; 
 
+    // M: if the pte is dirty and the vma is shared, 
+    // write the data back to the file
     if((*pte & PTE_D) && (vma->flags & MAP_SHARED)){ 
+
       begin_op();
+      
       ilock(vma->file->ip);
+      // M: get the offset of the file
       uint64 copied_len = a - src_va;
       writei(vma->file->ip, 1, a, copied_len, PGSIZE);
       iunlock(vma->file->ip);
+      
       end_op();
     }
     kfree((void*)PTE2PA(*pte));

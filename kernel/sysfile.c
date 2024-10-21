@@ -512,6 +512,8 @@ sys_mmap() {
   int prot, flags, fd;
   struct file* file;
 
+  // M: obtain the arguments
+
   argaddr(0, &addr);
   // argint(1, &length);
   argaddr(1, &length);
@@ -529,12 +531,12 @@ sys_mmap() {
     return -1;
   }
 
-  // M: if the file is not wriablt and 
   // the prot is PROT_WRITE and the flags is MAP_SHARED, return -1.
   if (!file->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)) {
     return -1;
   }
 
+  // M: get the valid mmap space.
   int vma_index = -1;
   uint64 sta_addr = get_mmap_space(length, p->mmap_vmas, &vma_index);
 
@@ -563,7 +565,6 @@ sys_mmap() {
 uint64
 get_mmap_space(uint64 sz, struct mmap_vma* vmas, int* free_idx){
   *free_idx = -1;
-  
   uint64 lowest_addr = TRAPFRAME;
   
   struct mmap_vma tmp; 
@@ -571,6 +572,7 @@ get_mmap_space(uint64 sz, struct mmap_vma* vmas, int* free_idx){
 
   for(int i = 0; i <= VMA_SIZE; i++){
     
+    // M: the vma is valid
     if(vmas[i].in_use == 0 && i != VMA_SIZE){
       *free_idx = i;
       continue;
@@ -612,6 +614,8 @@ munmap(uint64 addr, uint64 len){
     return -1;
   }
 
+  // M: write back the content to the file
+  // M: maybe partial write back, instead of the whole vma
   mmap_writeback(p->pagetable, addr, len, cur_vma);
  
   if(addr == cur_vma->sta_addr){ 
@@ -619,6 +623,7 @@ munmap(uint64 addr, uint64 len){
   } 
   cur_vma->sz -= len;
   
+  // M: the whole vma is released
   if(cur_vma->sz <= 0){
     fileclose(cur_vma->file);
     cur_vma->in_use = 0;
