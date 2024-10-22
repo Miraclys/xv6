@@ -77,6 +77,9 @@ cowhandler(pagetable_t pagetable, uint64 va)
     *pte = (PA2PTE(mem) | flags | PTE_W);
     // set PTE_RSW to 0
     *pte &= ~PTE_RSW;
+
+    // mappages(pagetable, va, PGSIZE, (uint64)mem, flags);
+
     return 0;
 }
 
