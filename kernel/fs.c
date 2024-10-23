@@ -70,10 +70,17 @@ balloc(uint dev)
   struct buf *bp;
 
   bp = 0;
+  // M: iterate over all disk blocks
   for(b = 0; b < sb.size; b += BPB){
+
+    // M: read the bitmap block
+    // M: BBLOCK(b, sb) is used to get the block number of the bitmap block that 
+    // contains the bit for block b
     bp = bread(dev, BBLOCK(b, sb));
+
     for(bi = 0; bi < BPB && b + bi < sb.size; bi++){
       m = 1 << (bi % 8);
+
       if((bp->data[bi/8] & m) == 0){  // Is block free?
         bp->data[bi/8] |= m;  // Mark block in use.
         log_write(bp);
@@ -455,11 +462,17 @@ bmap(struct inode *ip, uint bn)
     // M: the block is not allocated
     // M: ip->addrs[bn] means the bn-th block's address in the direct block
     if((addr = ip->addrs[bn]) == 0){
+
+      // M: allocate a new disk block
       addr = balloc(ip->dev);
       if(addr == 0)
         return 0;
+
+      // M: we don't need to read the disk block
+      // M: we could update the ip->addrs directly
       ip->addrs[bn] = addr;
     }
+
     return addr;
   }
 
