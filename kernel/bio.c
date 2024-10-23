@@ -167,6 +167,7 @@ bget(uint dev, uint blockno)
       b->timestamps = ticks;
       release(&tickslock);
 
+      // M: release the lock of the hash bucket
       release(&bcache.bucket[bid].lock);
       acquiresleep(&b->lock);
       return b;
@@ -198,6 +199,7 @@ bread(uint dev, uint blockno)
     virtio_disk_rw(b, 0);
     b->valid = 1;
   }
+
   // M: return a locked buffer
   return b;
 }
@@ -206,6 +208,7 @@ bread(uint dev, uint blockno)
 void
 bwrite(struct buf *b)
 {
+  // M: the current process has held the buffer block
   if(!holdingsleep(&b->lock))
     panic("bwrite");
   virtio_disk_rw(b, 1);
@@ -221,8 +224,6 @@ brelse(struct buf *b)
 
   // M: obtain the hash id
   int id = hash(b->blockno);
-
-  releasesleep(&b->lock);
   
   acquire(&bcache.bucket[id].lock);
   b->refcnt--;
@@ -231,6 +232,9 @@ brelse(struct buf *b)
     b->timestamps = ticks;
     release(&tickslock);
   }
+
+  releasesleep(&b->lock);
+
   release(&bcache.bucket[id].lock);
 }
 

@@ -50,7 +50,10 @@ holdingsleep(struct sleeplock *lk)
   int r;
   
   acquire(&lk->lk);
+
+  // M: check whether the current process has held the sleeplock
   r = lk->locked && (lk->pid == myproc()->pid);
+  
   release(&lk->lk);
   return r;
 }
