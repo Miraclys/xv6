@@ -559,6 +559,7 @@ sys_symlink(void) {
 
   // M: start a file system operation
   // M: called at the start of each FS system call.
+  // M: it will lock several resources
   begin_op();
   
   // M: create a symbolic link inode in the path position
@@ -575,6 +576,8 @@ sys_symlink(void) {
   // M: create a symbolic link inode successfully
   // M: write the target path to the inode
   // M: writei() write data to the inode
+
+  // M: write to the ip's disk block
   if(writei(ip, 0, (uint64)target, 0, MAXPATH) < MAXPATH) {
     // M: release the inode's lock
     iunlockput(ip);
