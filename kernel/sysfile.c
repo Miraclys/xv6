@@ -361,7 +361,7 @@ sys_open(void)
       }
       iunlockput(ip);
 
-      // M: get the inode of the target file
+      // M: get the inode of path
       ip = namei(path);
       if(ip == 0) {
         end_op();
